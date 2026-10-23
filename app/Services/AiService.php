@@ -10,6 +10,8 @@ class AiService
 {
     protected AiSetting $config;
     protected ?AiToolService $tools = null;
+    protected ?\App\Models\System\AiProvider $provider = null;
+    protected ?\App\Models\System\AiModel $model = null;
 
     public function __construct(?AiSetting $config = null)
     {
@@ -23,13 +25,72 @@ class AiService
     }
 
     /**
+     * 指定本次调用使用的供应商（多供应商支持）
+     */
+    public function useProvider(?\App\Models\System\AiProvider $provider): self
+    {
+        $this->provider = $provider;
+        return $this;
+    }
+
+    /**
+     * 指定本次调用使用的模型
+     */
+    public function useModel(?\App\Models\System\AiModel $model): self
+    {
+        $this->model = $model;
+        if ($model && !$this->provider) {
+            $this->provider = $model->provider;
+        }
+        return $this;
+    }
+
+    /**
+     * 生效的 API Key：优先当前供应商，回退全局配置
+     */
+    public function apiKey(): ?string
+    {
+        if ($this->provider && $this->provider->hasRealApiKey()) {
+            return $this->provider->api_key;
+        }
+
+        return $this->config->api_key;
+    }
+
+    /**
+     * 生效的 Base URL
+     */
+    public function baseUrl(): string
+    {
+        return rtrim((string) ($this->provider?->base_url ?: $this->config->base_url), '/');
+    }
+
+    /**
+     * 生效的模型标识
+     */
+    public function modelKey(): string
+    {
+        if ($this->model) {
+            return $this->model->model_id;
+        }
+
+        return (string) $this->config->model;
+    }
+
+    /**
      * 是否可用
      */
     public function isAvailable(): bool
     {
+        $key = $this->apiKey();
+
+        if ($this->provider) {
+            return $this->provider->enabled && $key && !str_starts_with((string) $key, 'sk-xxxx');
+        }
+
         return $this->config->enabled
-            && $this->config->api_key
-            && !str_starts_with($this->config->api_key, 'sk-xxxx');
+            && $key
+            && !str_starts_with((string) $key, 'sk-xxxx');
     }
 
     /**
@@ -56,10 +117,10 @@ class AiService
 
         try {
             $resp = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->config->api_key,
+                'Authorization' => 'Bearer ' . $this->apiKey(),
                 'Content-Type' => 'application/json',
-            ])->timeout(60)->post(rtrim($this->config->base_url, '/') . '/chat/completions', [
-                'model' => $this->config->model,
+            ])->timeout(60)->post($this->baseUrl() . '/chat/completions', [
+                'model' => $this->modelKey(),
                 'messages' => $messages,
                 'temperature' => (float) $this->config->temperature,
                 'max_tokens' => $this->config->max_tokens,
@@ -142,6 +203,112 @@ class AiService
     }
 
     /**
+     * 测试指定供应商的连通性（不落库、不影响全局配置）
+     */
+    public function testForProvider(\App\Models\System\AiProvider $provider, ?string $modelId = null): array
+    {
+        if (!$provider->hasRealApiKey()) {
+            return ['ok' => false, 'message' => '该供应商尚未填写 API Key'];
+        }
+
+        $modelId = $modelId
+            ?: $provider->models()->where('is_default', true)->value('model_id')
+            ?: $provider->models()->where('enabled', true)->value('model_id');
+
+        $fakeModel = $modelId ? new \App\Models\System\AiModel([
+            'model_id' => $modelId,
+            'name' => $modelId,
+        ]) : null;
+        if ($fakeModel) {
+            $fakeModel->setRelation('provider', $provider);
+        }
+
+        $service = (new self($this->config))->useProvider($provider);
+        if ($fakeModel) {
+            $service->useModel($fakeModel);
+        }
+
+        try {
+            $reply = $service->chat('你好，请只回复四个字：连接成功。');
+            if ($reply) {
+                return ['ok' => true, 'message' => '连接成功（' . ($modelId ?: '默认模型') . '）：' . mb_substr($reply, 0, 60)];
+            }
+
+            return ['ok' => false, 'message' => '调用失败，请检查 API Key、Base URL 或网络'];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => '异常：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 带附件的对话：图片走视觉模型，文本文件抽取内容拼进提示词
+     *
+     * @param array $attachments AiAttachment[]（含图片与文本文件）
+     */
+    public function chatWithAttachments(string $userMessage, array $history = [], array $attachments = [], ?string $systemPrompt = null): ?string
+    {
+        if (!$this->isAvailable()) {
+            return '⚠️ AI 助手尚未配置。请前往 后台 → AI 智能助手 设置 API Key 并启用。';
+        }
+
+        $images = array_values(array_filter($attachments, fn ($a) => $a->is_image));
+        $files = array_values(array_filter($attachments, fn ($a) => !$a->is_image));
+
+        // 图片理解：使用视觉模型，走 base64 image_url
+        if ($images && $this->config->vision_enabled) {
+            $visionModel = \App\Models\System\AiModel::usable()
+                ->vision()
+                ->where('provider_id', $this->provider?->id)
+                ->first();
+
+            $content = [['type' => 'text', 'text' => $userMessage]];
+            foreach ($images as $att) {
+                $path = $att->absolutePath();
+                if (!$path || !is_file($path)) {
+                    continue;
+                }
+                $base64 = base64_encode(file_get_contents($path));
+                $content[] = [
+                    'type' => 'image_url',
+                    'image_url' => ['url' => 'data:image/jpeg;base64,' . $base64],
+                ];
+            }
+
+            try {
+                $resp = \Illuminate\Support\Facades\Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $this->apiKey(),
+                    'Content-Type' => 'application/json',
+                ])->timeout(120)->post($this->baseUrl() . '/chat/completions', [
+                    'model' => $visionModel?->model_id ?: $this->modelKey(),
+                    'messages' => array_filter([
+                        $systemPrompt ? ['role' => 'system', 'content' => $systemPrompt] : null,
+                        ['role' => 'user', 'content' => $content],
+                    ]),
+                    'max_tokens' => $this->config->max_tokens,
+                ]);
+
+                if ($resp->successful()) {
+                    return $resp->json('choices.0.message.content');
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('AI 视觉调用异常: ' . $e->getMessage());
+            }
+        }
+
+        // 文本附件：把抽取出的原文拼进用户消息
+        $prompt = $userMessage;
+        foreach ($files as $att) {
+            if (!empty($att->extracted_text)) {
+                $prompt .= "\n\n以下是用户上传文件《{$att->original_name}》的原文内容，请直接据此回答，不要声称看不到文件：\n"
+                    . mb_substr($att->extracted_text, 0, 20000);
+            }
+        }
+
+        return $this->setTools($this->tools ?: new AiToolService())
+            ->chatWithTools($prompt, $history, $systemPrompt);
+    }
+
+    /**
      * 审批建议分析
      * 分析订单数据并给出 AI 审批建议
      */
@@ -178,15 +345,15 @@ class AiService
      * @param array $history 历史消息
      * @return string|null AI 最终回复
      */
-    public function chatWithTools(string $userMessage, array $history = []): ?string
+    public function chatWithTools(string $userMessage, array $history = [], ?string $systemPrompt = null): ?string
     {
         if (!$this->isAvailable()) {
             return '⚠️ AI 助手尚未配置。请前往 后台 → AI 智能助手 设置 API Key 并启用。';
         }
 
-        $systemPrompt = "你是一个电子工厂ERP系统的智能助手。你可以调用工具查询库存、订单、物料等数据。"
+        $systemPrompt = $systemPrompt ?: ("你是一个电子工厂ERP系统的智能助手。你可以调用工具查询库存、订单、物料等数据。"
             . "请用简洁的中文回答用户问题。如果需要查询数据，先调用对应工具，再基于结果回答。"
-            . "回答时不要编造数据，所有数字必须来自工具返回。";
+            . "回答时不要编造数据，所有数字必须来自工具返回。");
 
         $messages = array_merge(
             [['role' => 'system', 'content' => $systemPrompt]],
@@ -195,7 +362,7 @@ class AiService
         );
 
         $payload = [
-            'model' => $this->config->model,
+            'model' => $this->modelKey(),
             'messages' => $messages,
             'temperature' => (float) $this->config->temperature,
             'max_tokens' => $this->config->max_tokens,
@@ -207,13 +374,13 @@ class AiService
             $payload['tool_choice'] = 'auto';
         }
 
-        $baseUrl = rtrim($this->config->base_url, '/');
+        $baseUrl = $this->baseUrl();
 
         // 最多循环 3 轮（防止无限调用）
         for ($i = 0; $i < 3; $i++) {
             try {
                 $resp = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $this->config->api_key,
+                    'Authorization' => 'Bearer ' . $this->apiKey(),
                     'Content-Type' => 'application/json',
                 ])->timeout(60)->post($baseUrl . '/chat/completions', $payload);
 

@@ -8,6 +8,7 @@ use App\Models\MasterData\Item;
 use App\Support\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ItemController extends Controller
 {
@@ -120,6 +121,137 @@ class ItemController extends Controller
         $item->delete();
 
         return redirect()->route('admin.items.index')->with('success', '物料删除成功');
+    }
+
+    /**
+     * 规格书操作页（查看 / 上传 / 删除）
+     */
+    public function specSheet(Item $item)
+    {
+        $this->authorize('uploadSpecSheet', $item);
+
+        $size = null;
+        $uploadedAt = null;
+        if ($item->hasSpecSheet() && Storage::disk('public')->exists($item->spec_sheet_path)) {
+            $size = Storage::disk('public')->size($item->spec_sheet_path);
+            $uploadedAt = Storage::disk('public')->lastModified($item->spec_sheet_path);
+        }
+
+        return view('masterdata.items.spec-sheet', compact('item', 'size', 'uploadedAt'));
+    }
+
+    /**
+     * 上传规格书：仅允许 PDF 格式
+     */
+    public function uploadSpecSheet(Request $request, Item $item)
+    {
+        $this->authorize('uploadSpecSheet', $item);
+
+        $request->validate([
+            'spec_sheet' => 'required|file|mimes:pdf|max:20480',
+        ], [
+            'spec_sheet.required' => '请选择要上传的规格书文件',
+            'spec_sheet.file' => '上传的内容不是有效文件',
+            'spec_sheet.mimes' => '规格书必须是 PDF 格式文件',
+            'spec_sheet.max' => '规格书文件不能超过 20MB',
+        ]);
+
+        $file = $request->file('spec_sheet');
+
+        // 双重校验：扩展名 + 文件头都必须为 PDF
+        if (strtolower((string) $file->getClientOriginalExtension()) !== 'pdf' || ! $this->isPdfFile($file->getPathname())) {
+            return back()->withErrors(['spec_sheet' => '规格书必须是 PDF 格式文件'])->withInput();
+        }
+
+        $oldPath = $item->spec_sheet_path;
+        $path = $file->storeAs(
+            'items/spec-sheets',
+            $item->id . '-' . date('YmdHis') . '-' . Str::lower(Str::random(6)) . '.pdf',
+            'public'
+        );
+
+        if (! $path) {
+            return back()->with('error', '规格书上传失败，请稍后重试');
+        }
+
+        $oldValues = $item->toArray();
+        $item->update(['spec_sheet_path' => $path]);
+
+        if ($oldPath && $oldPath !== $path) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        AuditLogger::update('item', $item, $oldValues);
+
+        return redirect()->route('admin.items.spec-sheet', $item)->with('success', '规格书上传成功');
+    }
+
+    /**
+     * 在线预览规格书（浏览器内直接打开 PDF）
+     */
+    public function previewSpecSheet(Item $item)
+    {
+        $this->authorize('view', $item);
+
+        $disk = Storage::disk('public');
+        abort_unless($item->hasSpecSheet(), 404, '该物料尚未上传规格书');
+        abort_unless($disk->exists($item->spec_sheet_path), 404, '规格书文件不存在');
+
+        return response()->file($disk->path($item->spec_sheet_path), [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="spec-sheet.pdf"',
+        ]);
+    }
+
+    /**
+     * 下载规格书
+     */
+    public function downloadSpecSheet(Item $item)
+    {
+        $this->authorize('view', $item);
+
+        $disk = Storage::disk('public');
+        abort_unless($item->hasSpecSheet(), 404, '该物料尚未上传规格书');
+        abort_unless($disk->exists($item->spec_sheet_path), 404, '规格书文件不存在');
+
+        return $disk->download($item->spec_sheet_path, '规格书-' . $item->code . '.pdf');
+    }
+
+    /**
+     * 删除规格书
+     */
+    public function deleteSpecSheet(Item $item)
+    {
+        $this->authorize('uploadSpecSheet', $item);
+
+        if ($item->hasSpecSheet()) {
+            $oldValues = $item->toArray();
+            Storage::disk('public')->delete($item->spec_sheet_path);
+            $item->update(['spec_sheet_path' => null]);
+            AuditLogger::update('item', $item, $oldValues);
+        }
+
+        return redirect()->route('admin.items.spec-sheet', $item)->with('success', '规格书已删除');
+    }
+
+    /**
+     * 文件头是否为 PDF（%PDF-）
+     */
+    protected function isPdfFile(string $path): bool
+    {
+        if (! is_file($path)) {
+            return false;
+        }
+
+        $handle = @fopen($path, 'rb');
+        if (! $handle) {
+            return false;
+        }
+
+        $magic = fread($handle, 5);
+        fclose($handle);
+
+        return $magic === '%PDF-';
     }
 
     /**

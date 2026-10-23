@@ -2,7 +2,7 @@
 
 ## 系统概述
 
-基于 Laravel 12 + MySQL 8 的电子工厂 ERP 系统，覆盖销售、采购、库存、生产、质量、财务、CRM、AI 等 16 个业务模块。内置 8 角色 RBAC 权限、Spatie/Permission、Sanctum API、Vite 前端构建。
+基于 Laravel 12 + MySQL 8 的电子工厂 ERP 系统，覆盖销售、采购、库存、生产、质量、财务、CRM、AI、协作沟通、物流快递等 20 个业务模块。内置 8 角色 RBAC 权限、Spatie/Permission（11 个 Policy）、Sanctum API，前端为 Blade + Bootstrap 5 本地静态资源（无需 npm 构建）。
 
 ## 环境要求
 
@@ -26,7 +26,7 @@ cd laravel12-erp
 
 ```bash
 composer install
-npm install
+# npm install 可跳过：前端样式为 public/css、public/js 下的本地静态资源
 ```
 
 ### 3. 配置环境
@@ -95,11 +95,22 @@ php artisan db:seed --class=ExtendedDemoDataSeeder
 php artisan storage:link
 ```
 
-### 8. 前端构建
+> 必须执行：用户头像（`avatars/`）、群聊/私聊附件（`chat-files/`）、物料图片与单据附件都走 `public` 盘。
+> AI 聊天附件走私有盘 `ai_chat`（`storage/app/ai-chat`），不对外暴露，经控制器预览/下载。
 
-```bash
-npm run build
-```
+### 8. 前端资源（无需构建）
+
+样式与脚本已内置在 `public/`：
+
+| 资源 | 路径 |
+|------|------|
+| Bootstrap 5 CSS / JS | `public/css/bootstrap.min.css`、`public/js/bootstrap.bundle.min.js` |
+| FontAwesome | `public/css/font-awesome.min.css` |
+| ECharts | `public/js/echarts.min.js` |
+| 自定义样式 | `public/css/erp.css`、`public/css/erp-utilities.css` |
+| 默认头像 | `public/avatars/defaults/avatar1~5.svg` |
+
+如需自定义主题，直接改 `public/css/erp.css` 后清浏览器缓存即可。
 
 ### 9. 启动服务
 
@@ -123,6 +134,12 @@ cat storage/logs/smoke-report.txt
 ```
 
 冒烟测试会逐角色（admin / sales_manager / purchase_manager / production_manager / warehouse_manager / quality_manager / accountant / viewer）爬取 145+ 个页面，验证全部返回 2xx/3xx。
+
+2026-10-22 另做了一轮**真实 HTTP 内核冒烟**（路由 → 中间件 → 控制器 → Blade，会话注入真实用户）：
+
+- 166 条 GET 路由：OK=166 / FAIL=0 / 404=0
+- 对每页 HTML 做内容校验：Tailwind 残留 0、错误页/`Undefined variable`/`SQLSTATE` 0、未渲染的 `{{ }}`/`:class=` 0、缺样式资源 0（两个条码打印页自带内联样式，属预期）
+- 8 角色 × 9 页面的权限矩阵全部符合预期
 
 ## Web 服务器配置
 
@@ -209,24 +226,24 @@ laravel12-erp/
 │   │   └── Requests/         # 表单请求验证
 │   ├── Listeners/            # 事件订阅器
 │   ├── Mail/                 # 邮件模板
-│   ├── Models/               # 75+ 个模型
+│   ├── Models/               # 87 个模型（含 System/AI、Chat、Logistics）
 │   ├── Policies/             # 11 个授权策略
-│   ├── Providers/            # 服务提供者
-│   ├── Services/             # 9 个业务服务层
+│   ├── Providers/            # 服务提供者（AuthServiceProvider 必须在 bootstrap/providers.php 注册）
+│   ├── Services/             # 11 个业务服务层（含 AiService、LogisticsService、NotificationService）
 │   └── Support/              # 工具类
 ├── bootstrap/
 ├── config/                   # 配置文件
 ├── database/
 │   ├── factories/            # 模型工厂
-│   ├── migrations/           # 75+ 个迁移
+│   ├── migrations/           # 81 个迁移
 │   └── seeders/              # 3 个种子
-├── public/                   # Web 入口
+├── public/                   # Web 入口（css/ js/ avatars/ 前端静态资源）
 ├── resources/
-│   ├── views/                # Blade 模板
-│   ├── css/                  # Tailwind 入口
-│   └── js/                   # JS 入口
+│   ├── views/                # Blade 模板（172 个）
+│   ├── css/                  # 备用样式入口
+│   └── js/                   # 备用脚本入口
 ├── routes/
-│   ├── web.php               # Web 路由
+│   ├── web.php               # Web 路由（321 条）
 │   ├── api.php               # API 路由
 │   ├── auth.php              # 认证路由
 │   └── console.php
@@ -308,11 +325,29 @@ laravel12-erp/
 - 质量统计（合格率/缺陷分布）
 
 ### AI 能力
-- AI 设置（4 家国内厂商 + 1 家国际）
+- AI 供应商管理（DeepSeek / 通义千问 / 豆包 / 元宝 **可同时配置**：独立 Key、独立开关、设默认、单家连通性测试）
+- 模型目录管理（按供应商同步 / 自定义 / 设默认 / 是否开放用户 / 看图能力）
+- AI 聊天（多会话、模型切换、附件与图片理解、Markdown 渲染、导出 Markdown）
 - 发票 OCR（图片→结构化字段）
-- AI 聊天助手（自然语言查库存/订单）
 - AI 审批建议（订单详情页）
 - AI 智能分析中心（10 个分析模块）
+
+### 协作沟通
+- 全员群聊（`/app/chat`）：图片/文件附件、撤回自己的消息、5 秒轮询新消息、成员列表显示在线状态
+- 一对一私聊（`/app/chat/{user}`）：联系人按最后消息排序，对方离线时自动落 `private_message` 站内通知
+- 「清空我的记录」基于 `chat_clear_states`，只影响本人视图，不影响其他参与者
+
+### 个人中心
+- 头像上传（jpg/png/gif/webp ≤ 2MB，自动清理旧文件）
+- 5 套系统默认 SVG 头像一键选择
+- 个人资料（姓名/邮箱/电话/岗位/签名）+ 名片卡（角色、在线状态、最近活跃）
+
+### 物流快递
+- 后台开通引导页 `/admin/logistics/guide`：快递100 / 快递鸟 / 菜鸟 通道对比 + 官方申请链接 + 三步走
+- 物流设置 `/admin/logistics/settings`：查询通道（AppKey/AppSecret/默认/测试/开关）、10 家国内快递公司启用清单、高级参数
+- 仓库物流查询 `/app/inventory/logistics`：运单查询、轨迹时间线、运单登记、运单详情
+- 查询三档回退：正式签名 API → 快递100 免费公共查询 → 演示数据（页面明确标注）
+- 物流状态变化站内通知；签收/异常/退回额外通知 `warehouse_manager` 角色
 
 ## 角色权限
 
@@ -326,19 +361,20 @@ laravel12-erp/
 | quality_manager | 质量经理 |
 | accountant | 财务人员（只读） |
 | viewer | 查看员（只读） |
+| demo | 虚拟演示角色（全业务模块 + 全部业务权限，用于演示所有操作页面；进不了后台） |
 
 ## 默认账号
 
 | 角色 | 账号 | 密码 |
 |------|------|------|
-| admin | admin@admin.com | password |
-| 销售经理 | sales@demo.com | password |
-| 采购经理 | purchase@demo.com | password |
-| 生产经理 | production@demo.com | password |
-| 仓库经理 | warehouse@demo.com | password |
-| 质量经理 | quality@demo.com | password |
-| 财务 | accounting@demo.com | password |
-| 查看员 | viewer@demo.com | password |
+| admin | admin@admin.com | 123456 |
+| 销售经理 | sales@demo.com | 123456 |
+| 采购经理 | purchase@demo.com | 123456 |
+| 生产经理 | production@demo.com | 123456 |
+| 仓库经理 | warehouse@demo.com | 123456 |
+| 质量经理 | quality@demo.com | 123456 |
+| 财务 | accounting@demo.com | 123456 |
+| 查看员 | viewer@demo.com | 123456 |
 
 > ⚠️ 生产环境必须立即修改默认密码！
 
@@ -358,9 +394,13 @@ php artisan test --filter=SmokeTest
 |------|------|
 | 500 错误 | 检查 `storage/logs/laravel.log` |
 | 迁移失败 | `php artisan migrate:status` 查看 Pending 迁移 |
-| 前端资源 404 | `php artisan storage:link && npm run build` |
+| 前端样式异常 | 确认 `public/css/bootstrap.min.css` 与 `public/css/erp.css` 可访问；无需 `npm run build` |
+| 头像/聊天附件 404 | `php artisan storage:link`，确认 `public/storage` 符号链接存在且 `storage/app/public` 可写 |
+| AI 调用一直失败 | 后台 `/admin/ai-settings` 检查供应商是否启用、Key 是否填写、Base URL 是否正确；用单家「测试」按钮定位 |
+| 物流查询返回演示数据 | 说明未配置通道密钥或外网不可达；配置 Key 后走正式 API，否则走免费公共查询 |
 | 冒烟测试失败 | 查看 `storage/logs/smoke-report.txt` 定位失败路由 |
 | 队列任务卡住 | `php artisan queue:flush` + `queue:work` |
+| 所有接口 403（含 admin） | 检查 `bootstrap/providers.php` 是否注册了 `AuthServiceProvider`（未注册则 11 个 Policy 全部失效） |
 
 ## 安全建议
 

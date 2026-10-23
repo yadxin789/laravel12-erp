@@ -11,7 +11,7 @@ class Item extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'code', 'barcode', 'name', 'spec', 'description', 'image_path', 'category_id', 'unit_id', 'purchase_unit_id',
+        'code', 'barcode', 'name', 'spec', 'description', 'image_path', 'spec_sheet_path', 'category_id', 'unit_id', 'purchase_unit_id',
         'purchase_conversion_rate', 'item_type', 'batch_management', 'serial_management',
         'quality_inspection_required', 'safety_stock', 'min_order_quantity', 'standard_cost',
         'active', 'created_by', 'updated_by',
@@ -78,6 +78,26 @@ class Item extends Model
             return null;
         }
         return asset('storage/' . $this->image_path);
+    }
+
+    /**
+     * 是否已上传规格书（PDF）。
+     */
+    public function hasSpecSheet(): bool
+    {
+        return ! empty($this->spec_sheet_path);
+    }
+
+    /**
+     * 规格书在线预览地址。
+     */
+    public function getSpecSheetUrlAttribute(): ?string
+    {
+        if (! $this->hasSpecSheet()) {
+            return null;
+        }
+
+        return route('admin.items.spec-sheet.preview', $this);
     }
 
     public function getOrCreateBarcode(): string

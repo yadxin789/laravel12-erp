@@ -1,54 +1,95 @@
 @extends('layouts.business')
+
 @section('title', '质量报告')
+
 @section('content')
-<div class="bg-white shadow rounded-lg p-6">
-    <h2 class="text-2xl font-bold mb-6">质量报告</h2>
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-blue-100 p-4 rounded">
-            <div class="text-lg font-bold">{{ $totalInspections ?? 0 }}</div>
-            <div class="text-sm text-gray-600">总检验数</div>
+    @php
+        $total = $totalInspections ?? 0;
+        $pass = $passCount ?? 0;
+        $fail = $failCount ?? 0;
+        $passRate = $total > 0 ? round($pass / $total * 100, 1) : 0;
+    @endphp
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-chart-column"></i>质量报告</h2>
+        <a href="{{ route('app.quality.inspections.index') }}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i>返回检验管理
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-primary-subtle h-100">
+                <div class="card-body">
+                    <div class="text-muted small">总检验数</div>
+                    <div class="fs-3 fw-bold text-primary">{{ $total }}</div>
+                </div>
+            </div>
         </div>
-        <div class="bg-green-100 p-4 rounded">
-            <div class="text-lg font-bold text-green-700">{{ $passCount ?? 0 }}</div>
-            <div class="text-sm text-gray-600">合格</div>
+        <div class="col-12 col-md-4">
+            <div class="card border-success-subtle h-100">
+                <div class="card-body">
+                    <div class="text-muted small">合格</div>
+                    <div class="fs-3 fw-bold text-success">{{ $pass }}</div>
+                    <div class="small text-muted">合格率 {{ $passRate }}%</div>
+                </div>
+            </div>
         </div>
-        <div class="bg-red-100 p-4 rounded">
-            <div class="text-lg font-bold text-red-700">{{ $failCount ?? 0 }}</div>
-            <div class="text-sm text-gray-600">不合格</div>
+        <div class="col-12 col-md-4">
+            <div class="card border-danger-subtle h-100">
+                <div class="card-body">
+                    <div class="text-muted small">不合格</div>
+                    <div class="fs-3 fw-bold text-danger">{{ $fail }}</div>
+                </div>
+            </div>
         </div>
     </div>
-    @if(isset($inspections) && $inspections->isNotEmpty())
-    <table class="w-full border-collapse">
-        <thead>
-            <tr class="bg-gray-100">
-                <th class="border px-4 py-2 text-left">检验单号</th>
-                <th class="border px-4 py-2 text-left">检验类型</th>
-                <th class="border px-4 py-2 text-left">物料</th>
-                <th class="border px-4 py-2 text-right">检验数量</th>
-                <th class="border px-4 py-2 text-right">合格</th>
-                <th class="border px-4 py-2 text-right">不合格</th>
-                <th class="border px-4 py-2 text-left">结果</th>
-                <th class="border px-4 py-2 text-left">日期</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($inspections as $inspection)
-            <tr class="hover:bg-gray-50">
-                <td class="border px-4 py-2">{{ $inspection->inspection_no }}</td>
-                <td class="border px-4 py-2">{{ $inspection->inspection_type }}</td>
-                <td class="border px-4 py-2">{{ $inspection->item?->name }}</td>
-                <td class="border px-4 py-2 text-right">{{ $inspection->inspected_size }}</td>
-                <td class="border px-4 py-2 text-right text-green-600">{{ $inspection->qualified_size }}</td>
-                <td class="border px-4 py-2 text-right text-red-600">{{ $inspection->rejected_size }}</td>
-                <td class="border px-4 py-2">{{ $inspection->result }}</td>
-                <td class="border px-4 py-2">{{ $inspection->inspection_date ?? $inspection->created_at }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    <div class="mt-4">{{ $inspections->links() }}</div>
-    @else
-    <div class="text-gray-500 text-center py-8">暂无质量数据</div>
-    @endif
-</div>
+
+    <div class="card">
+        <div class="card-header"><i class="fa-solid fa-list me-2"></i>检验记录</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>检验单号</th>
+                            <th>检验类型</th>
+                            <th>物料</th>
+                            <th class="text-end">检验数量</th>
+                            <th class="text-end">合格</th>
+                            <th class="text-end">不合格</th>
+                            <th>结果</th>
+                            <th>日期</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($inspections as $inspection)
+                            <tr>
+                                <td class="font-monospace small">{{ $inspection->inspection_no }}</td>
+                                <td>{{ $inspection->inspection_type?->label() ?? '-' }}</td>
+                                <td>{{ $inspection->item?->name ?? '-' }}</td>
+                                <td class="text-end">{{ $inspection->inspected_size }}</td>
+                                <td class="text-end text-success">{{ $inspection->qualified_size }}</td>
+                                <td class="text-end text-danger">{{ $inspection->rejected_size }}</td>
+                                <td>
+                                    <span class="badge {{ $inspection->result === \App\Enums\QualityResult::Pass ? 'bg-success-subtle text-success-emphasis border border-success-subtle' : 'bg-danger-subtle text-danger-emphasis border border-danger-subtle' }}">
+                                        {{ $inspection->result?->label() ?? '-' }}
+                                    </span>
+                                </td>
+                                <td>{{ $inspection->inspection_date?->format('Y-m-d') ?? $inspection->created_at?->format('Y-m-d') ?? '-' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="erp-empty">暂无质量数据</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                {{ $inspections->links() }}
+            </div>
+        </div>
+    </div>
 @endsection

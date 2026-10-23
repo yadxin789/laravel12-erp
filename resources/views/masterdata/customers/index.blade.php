@@ -3,51 +3,81 @@
 @section('title', '客户管理')
 
 @section('content')
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold">客户管理</h2>
-        <a href="{{ route('admin.customers.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">创建客户</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-building-user"></i>客户管理</h2>
+        <a href="{{ route('admin.customers.create') }}" class="btn btn-primary">
+            <i class="fa-solid fa-plus me-1"></i>创建客户
+        </a>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="GET" class="flex flex-wrap gap-4 mb-6">
-            <input type="text" name="code" placeholder="客户编码" value="{{ request('code') }}" class="border border-gray-300 rounded px-3 py-2">
-            <input type="text" name="name" placeholder="客户名称" value="{{ request('name') }}" class="border border-gray-300 rounded px-3 py-2">
-            <button type="submit" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">搜索</button>
-        </form>
+    <div class="card">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end mb-4">
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="code">客户编码</label>
+                    <input type="text" id="code" name="code" value="{{ request('code') }}" class="form-control" placeholder="客户编码">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="name">客户名称</label>
+                    <input type="text" id="name" name="name" value="{{ request('name') }}" class="form-control" placeholder="客户名称">
+                </div>
+                <div class="col-12 col-md-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-magnifying-glass me-1"></i>搜索</button>
+                    <a href="{{ route('admin.customers.index') }}" class="btn btn-light">重置</a>
+                </div>
+            </form>
 
-        <table class="w-full">
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="px-4 py-2 text-left">编码</th>
-                    <th class="px-4 py-2 text-left">名称</th>
-                    <th class="px-4 py-2 text-left">联系人</th>
-                    <th class="px-4 py-2 text-left">电话</th>
-                    <th class="px-4 py-2 text-left">地址</th>
-                    <th class="px-4 py-2 text-center">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($customers as $customer)
-                    <tr class="border-b">
-                        <td class="px-4 py-2">{{ $customer->code }}</td>
-                        <td class="px-4 py-2">{{ $customer->name }}</td>
-                        <td class="px-4 py-2">{{ $customer->contact_person }}</td>
-                        <td class="px-4 py-2">{{ $customer->phone }}</td>
-                        <td class="px-4 py-2">{{ $customer->address }}</td>
-                        <td class="px-4 py-2 text-center">
-                            <a href="{{ route('admin.customers.show', $customer) }}" class="text-blue-600 hover:underline">查看</a>
-                            <a href="{{ route('admin.customers.edit', $customer) }}" class="text-green-600 hover:underline ml-4">编辑</a>
-                            <form action="{{ route('admin.customers.destroy', $customer) }}" method="POST" class="inline ml-4">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:underline">删除</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>编码</th>
+                            <th>名称</th>
+                            <th>联系人</th>
+                            <th>电话</th>
+                            <th>地址</th>
+                            <th class="text-end" style="width: 200px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($customers as $customer)
+                            <tr>
+                                <td class="font-monospace small">{{ $customer->code }}</td>
+                                <td>{{ $customer->name }}</td>
+                                <td>{{ $customer->contact_person }}</td>
+                                <td>{{ $customer->phone }}</td>
+                                <td>{{ $customer->address }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('admin.customers.show', $customer) }}" class="btn btn-outline-primary">
+                                            <i class="fa-regular fa-eye"></i>查看
+                                        </a>
+                                        <a href="{{ route('admin.customers.edit', $customer) }}" class="btn btn-outline-secondary">
+                                            <i class="fa-regular fa-pen-to-square"></i>编辑
+                                        </a>
+                                        <form action="{{ route('admin.customers.destroy', $customer) }}" method="POST" class="d-inline"
+                                              onsubmit="return confirm('确定删除客户【{{ $customer->name }}】吗？')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger">
+                                                <i class="fa-regular fa-trash-can"></i>删除
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="erp-empty">暂无客户数据</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
-        {{ $customers->links() }}
+            <div class="d-flex justify-content-end">
+                {{ $customers->links() }}
+            </div>
+        </div>
     </div>
 @endsection

@@ -20,6 +20,7 @@ class QualityInspection extends Model
     ];
 
     protected $casts = [
+        'inspection_date' => 'date',
         'sample_size' => 'decimal:4',
         'inspected_size' => 'decimal:4',
         'qualified_size' => 'decimal:4',

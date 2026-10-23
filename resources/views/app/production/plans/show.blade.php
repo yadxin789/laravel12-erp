@@ -3,120 +3,141 @@
 @section('title', '生产计划详情')
 
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-gray-800">生产计划详情 - {{ $plan->plan_no }}</h2>
-        <div class="space-x-2">
+    @php
+        $badge = match (true) {
+            $plan->status === \App\Enums\ProductionPlanStatus::Approved => 'bg-success-subtle text-success-emphasis border border-success-subtle',
+            $plan->status === \App\Enums\ProductionPlanStatus::Converted => 'bg-primary-subtle text-primary-emphasis border border-primary-subtle',
+            $plan->status === \App\Enums\ProductionPlanStatus::Closed => 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle',
+            default => 'bg-light text-secondary border',
+        };
+    @endphp
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-calendar-days"></i>生产计划详情 - {{ $plan->plan_no }}</h2>
+        <div class="d-flex flex-wrap gap-2">
             @if($plan->canApprove())
-            <form action="{{ route('app.production.plans.approve', $plan) }}" method="POST" class="inline">
-                @csrf
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" onclick="return confirm('确定审批此计划吗？')">审批</button>
-            </form>
+                <form action="{{ route('app.production.plans.approve', $plan) }}" method="POST" class="d-inline"
+                      onsubmit="return confirm('确定审批此计划吗？')">
+                    @csrf
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-check me-1"></i>审批</button>
+                </form>
             @endif
             @if($plan->canConvertToOrders())
-            <form action="{{ route('app.production.plans.convert', $plan) }}" method="POST" class="inline">
-                @csrf
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="return confirm('确定将此计划转为生产工单吗？')">生成工单</button>
-            </form>
+                <form action="{{ route('app.production.plans.convert', $plan) }}" method="POST" class="d-inline"
+                      onsubmit="return confirm('确定将此计划转为生产工单吗？')">
+                    @csrf
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-right-left me-1"></i>生成工单</button>
+                </form>
             @endif
             @if($plan->canUpdate())
-            <a href="{{ route('app.production.plans.edit', $plan) }}" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">编辑</a>
+                <a href="{{ route('app.production.plans.edit', $plan) }}" class="btn btn-warning">
+                    <i class="fa-regular fa-pen-to-square me-1"></i>编辑
+                </a>
             @endif
-            <a href="{{ route('app.production.plans.index') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">返回</a>
+            <a href="{{ route('app.production.plans.index') }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-left me-1"></i>返回
+            </a>
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4 mb-6">
-        <div>
-            <p class="text-gray-600">计划号</p>
-            <p class="font-bold text-lg">{{ $plan->plan_no }}</p>
-        </div>
-        <div>
-            <p class="text-gray-600">状态</p>
-            <span class="px-2 py-1 rounded text-sm {{ $plan->status === 'draft' ? 'bg-gray-100 text-gray-800' : ($plan->status === 'approved' ? 'bg-green-100 text-green-800' : ($plan->status === 'converted' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100')) }}">
-                {{ $plan->status->label() }}
-            </span>
-        </div>
-        <div>
-            <p class="text-gray-600">计划日期</p>
-            <p>{{ $plan->plan_date }}</p>
-        </div>
-        <div>
-            <p class="text-gray-600">创建人</p>
-            <p>{{ $plan->creator?->name }}</p>
-        </div>
-        <div>
-            <p class="text-gray-600">审批人</p>
-            <p>{{ $plan->approver?->name ?? '-' }}</p>
-        </div>
-        <div>
-            <p class="text-gray-600">审批时间</p>
-            <p>{{ $plan->approved_at ?? '-' }}</p>
-        </div>
-        <div class="col-span-2">
-            <p class="text-gray-600">备注</p>
-            <p>{{ $plan->remark ?? '-' }}</p>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-6 col-md-4">
+                    <div class="text-muted small">计划号</div>
+                    <div class="fw-semibold font-monospace">{{ $plan->plan_no }}</div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="text-muted small">状态</div>
+                    <div><span class="badge {{ $badge }}">{{ $plan->status?->label() ?? '-' }}</span></div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="text-muted small">计划日期</div>
+                    <div class="fw-semibold">{{ $plan->plan_date?->format('Y-m-d') ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="text-muted small">创建人</div>
+                    <div class="fw-semibold">{{ $plan->creator?->name ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="text-muted small">审批人</div>
+                    <div class="fw-semibold">{{ $plan->approver?->name ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="text-muted small">审批时间</div>
+                    <div class="fw-semibold">{{ $plan->approved_at?->format('Y-m-d H:i') ?? '-' }}</div>
+                </div>
+                <div class="col-12">
+                    <div class="text-muted small">备注</div>
+                    <div class="fw-semibold">{{ $plan->remark ?? '-' }}</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <h3 class="text-lg font-bold text-gray-800 mb-3">计划明细</h3>
-    <table class="w-full mb-6">
-        <thead>
-            <tr class="border-b bg-gray-50">
-                <th class="text-left py-2 px-4">行号</th>
-                <th class="text-left py-2 px-4">物料</th>
-                <th class="text-right py-2 px-4">数量</th>
-                <th class="text-left py-2 px-4">计划日期</th>
-                <th class="text-left py-2 px-4">工作中心</th>
-                <th class="text-left py-2 px-4">对应销售订单</th>
-                <th class="text-left py-2 px-4">备注</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($plan->lines as $line)
-            <tr class="border-b">
-                <td class="py-2 px-4">{{ $line->line_number }}</td>
-                <td class="py-2 px-4">{{ $line->item?->name }} - {{ $line->item?->spec }}</td>
-                <td class="py-2 px-4 text-right">{{ number_format($line->quantity, 4) }}</td>
-                <td class="py-2 px-4">{{ $line->plan_date }}</td>
-                <td class="py-2 px-4">{{ $line->workCenter?->name ?? '-' }}</td>
-                <td class="py-2 px-4">
-                    @if($line->salesOrder)
-                    <a href="{{ route('app.sales.orders.show', $line->salesOrder) }}" class="text-blue-600 hover:underline">
-                        {{ $line->salesOrder->order_no }}
-                    </a>
-                    @else
-                    -
-                    @endif
-                </td>
-                <td class="py-2 px-4">{{ $line->remark ?? '-' }}</td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="7" class="py-4 text-center text-gray-400">暂无明细数据</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
+    <div class="card mb-4">
+        <div class="card-header"><i class="fa-solid fa-list me-2"></i>计划明细</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>行号</th>
+                            <th>物料</th>
+                            <th class="text-end">数量</th>
+                            <th>计划日期</th>
+                            <th>工作中心</th>
+                            <th>对应销售订单</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($plan->lines as $line)
+                            <tr>
+                                <td>{{ $line->line_number }}</td>
+                                <td>{{ $line->item?->name }} - {{ $line->item?->spec }}</td>
+                                <td class="text-end">{{ number_format($line->quantity, 4) }}</td>
+                                <td>{{ $line->plan_date ?? '-' }}</td>
+                                <td>{{ $line->workCenter?->name ?? '-' }}</td>
+                                <td>
+                                    @if($line->salesOrder)
+                                        <a href="{{ route('app.sales.orders.show', $line->salesOrder) }}">{{ $line->salesOrder->order_no }}</a>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td>{{ $line->remark ?? '-' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="erp-empty">暂无明细数据</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
     @if($plan->lines->count() > 0)
-    <div class="border-t pt-4">
-        <h3 class="text-lg font-bold text-gray-800 mb-3">汇总</h3>
-        <div class="grid grid-cols-3 gap-4">
-            <div>
-                <p class="text-gray-600">总计明细行数</p>
-                <p class="font-bold text-lg">{{ $plan->lines->count() }}</p>
-            </div>
-            <div>
-                <p class="text-gray-600">总计物料种类</p>
-                <p class="font-bold text-lg">{{ $plan->lines->pluck('item_id')->unique()->count() }}</p>
-            </div>
-            <div>
-                <p class="text-gray-600">总计数量</p>
-                <p class="font-bold text-lg">{{ number_format($plan->lines->sum('quantity'), 4) }}</p>
+        <div class="card">
+            <div class="card-header"><i class="fa-solid fa-sigma me-2"></i>汇总</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">总计明细行数</div>
+                        <div class="fw-semibold">{{ $plan->lines->count() }}</div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">总计物料种类</div>
+                        <div class="fw-semibold">{{ $plan->lines->pluck('item_id')->unique()->count() }}</div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">总计数量</div>
+                        <div class="fw-semibold">{{ number_format($plan->lines->sum('quantity'), 4) }}</div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
     @endif
-</div>
 @endsection

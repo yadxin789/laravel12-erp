@@ -49,13 +49,16 @@ class ProductionReportController extends Controller
 
         try {
             \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $order) {
+                // 表字段为 quantity / scrap_quantity / rework_quantity，需与表单字段做映射
+                $nextId = (int) (ProductionReport::max('id') ?? 0) + 1;
                 // 1. 创建生产汇报记录
                 ProductionReport::create([
+                    'report_no' => 'RPT' . date('Ymd') . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
                     'production_order_id' => $validated['production_order_id'],
-                    'operation_id' => $validated['operation_id'],
-                    'reported_quantity' => $validated['reported_quantity'],
-                    'rejected_quantity' => $validated['rejected_quantity'] ?? 0,
-                    'scrapped_quantity' => $validated['scrapped_quantity'] ?? 0,
+                    'operation_id' => is_numeric($validated['operation_id']) ? $validated['operation_id'] : null,
+                    'quantity' => $validated['reported_quantity'],
+                    'scrap_quantity' => $validated['scrapped_quantity'] ?? 0,
+                    'rework_quantity' => $validated['rejected_quantity'] ?? 0,
                     'remark' => $validated['remark'] ?? '',
                     'report_date' => now(),
                 ]);

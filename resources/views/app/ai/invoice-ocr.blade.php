@@ -3,58 +3,70 @@
 @section('title', '发票智能识别')
 
 @section('content')
-<div class="max-w-2xl mx-auto">
-    <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-bold mb-2">📄 发票智能识别（OCR）</h2>
-        <p class="text-sm text-gray-500 mb-6">上传采购发票/账单照片，AI 自动提取供应商、日期、金额、明细，快速生成采购订单草稿</p>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-file-invoice"></i>发票智能识别（OCR）</h2>
+        <a href="{{ route('app.ai.analysis-center') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i>返回
+        </a>
+    </div>
 
-        @if(session('error'))
-            <div class="mb-4 p-3 bg-red-100 text-red-800 rounded">{{ session('error') }}</div>
-        @endif
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted">上传采购发票/账单照片，AI 自动提取供应商、日期、金额、明细，快速生成采购订单草稿</p>
 
-        <form method="POST" action="{{ route('app.ai.invoice-ocr') }}" enctype="multipart/form-data">
-            @csrf
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition">
-                <input type="file" name="invoice_image" id="invoice_image" accept="image/*" required class="hidden">
-                <label for="invoice_image" class="cursor-pointer">
-                    <div class="text-5xl mb-3">📷</div>
-                    <p class="text-gray-700 font-medium">点击选择发票图片</p>
-                    <p class="text-sm text-gray-400 mt-1">支持 JPG / PNG / WebP，最大 10MB</p>
-                </label>
+                    @if(session('error'))
+                        <div class="alert alert-danger">{{ session('error') }}</div>
+                    @endif
+
+                    <form method="POST" action="{{ route('app.ai.invoice-ocr.recognize') }}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="border border-2 border-dashed rounded text-center p-5 mb-3">
+                            <input type="file" name="invoice_image" id="invoice_image" accept="image/*" required class="d-none">
+                            <label for="invoice_image" class="d-block" style="cursor: pointer;">
+                                <div class="fs-1 text-secondary mb-2"><i class="fa-solid fa-camera"></i></div>
+                                <div class="fw-semibold">点击选择发票图片</div>
+                                <div class="text-muted small mt-1">支持 JPG / PNG / WebP，最大 10MB</div>
+                            </label>
+                        </div>
+
+                        <div id="preview" class="mb-3 d-none text-center">
+                            <img id="preview-img" class="img-fluid rounded border" style="max-height: 16rem;" alt="预览">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fa-solid fa-wand-magic-sparkles me-1"></i>开始识别
+                        </button>
+                    </form>
+
+                    <div class="alert alert-warning mt-4 mb-0">
+                        <div class="fw-semibold mb-1">提示</div>
+                        <ul class="mb-0 ps-4">
+                            <li>图片越清晰，识别准确率越高</li>
+                            <li>支持增值税专用发票、普通发票、收据、送货单</li>
+                            <li>识别结果为草稿，需人工核对后再生成订单</li>
+                            <li>需先在后台 <b>AI 智能助手</b> 中开启视觉/OCR 功能</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-
-            <div id="preview" class="mt-4 hidden">
-                <img id="preview-img" class="max-h-64 mx-auto rounded shadow">
-            </div>
-
-            <button type="submit" class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium">
-                开始识别
-            </button>
-        </form>
-
-        <div class="mt-6 p-4 bg-yellow-50 rounded text-sm text-gray-600">
-            <b>提示：</b>
-            <ul class="list-disc ml-5 mt-1 space-y-1">
-                <li>图片越清晰，识别准确率越高</li>
-                <li>支持增值税专用发票、普通发票、收据、送货单</li>
-                <li>识别结果为草稿，需人工核对后再生成订单</li>
-                <li>需先在后台 <b>AI 智能助手</b> 中开启视觉/OCR 功能</li>
-            </ul>
         </div>
     </div>
-</div>
+@endsection
 
+@push('scripts')
 <script>
-document.getElementById('invoice_image').addEventListener('change', function(e) {
+document.getElementById('invoice_image').addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = function(ev) {
-            document.getElementById('preview').classList.remove('hidden');
+        reader.onload = function (ev) {
+            document.getElementById('preview').classList.remove('d-none');
             document.getElementById('preview-img').src = ev.target.result;
         };
         reader.readAsDataURL(file);
     }
 });
 </script>
-@endsection
+@endpush

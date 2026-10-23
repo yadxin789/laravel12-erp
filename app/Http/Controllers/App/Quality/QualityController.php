@@ -50,10 +50,14 @@ class QualityController extends Controller
             'qualified_size' => 'required|integer|min:0',
             'rejected_size' => 'required|integer|min:0',
             'warehouse_id' => 'nullable|exists:warehouses,id',
-            'result' => 'required|in:qualified,unqualified',
+            // result 已 cast 为 QualityResult 枚举，取值必须与枚举一致（原 qualified/unqualified 会导致读取时枚举转换异常）
+            'result' => 'required|in:pass,fail,conditional,waived',
         ]);
 
+        // inspection_no 为唯一且非空字段，需在此生成（原代码未赋值会导致创建失败）
+        $nextId = (int) (QualityInspection::max('id') ?? 0) + 1;
         $inspection = QualityInspection::create([
+            'inspection_no' => 'QI' . date('Ymd') . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
             'inspection_type' => $validated['inspection_type'],
             'inspection_date' => $validated['inspection_date'],
             'item_id' => $validated['item_id'],
@@ -70,7 +74,7 @@ class QualityController extends Controller
 
         event(new QualityCompleted($inspection));
 
-        if ($inspection->result === 'unqualified') {
+        if ($inspection->result === \App\Enums\QualityResult::Fail) {
             $this->notificationService->sendToRole(
                 'warehouse_manager',
                 '质检不合格通知',

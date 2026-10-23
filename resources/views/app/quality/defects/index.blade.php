@@ -3,95 +3,115 @@
 @section('title', '缺陷管理')
 
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-gray-800">缺陷管理</h2>
-        <span class="text-sm text-gray-500">缺陷代码字典 + 最近缺陷记录</span>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-triangle-exclamation"></i>缺陷管理</h2>
+        <span class="text-muted small">缺陷代码字典 + 最近缺陷记录</span>
     </div>
 
-    {{-- 统计卡片 --}}
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-blue-50 p-4 rounded-lg">
-            <p class="text-blue-600 text-sm">缺陷代码总数</p>
-            <p class="text-2xl font-bold text-blue-800">{{ $defectCodes->total() }}</p>
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-4">
+            <div class="card border-primary-subtle h-100">
+                <div class="card-body">
+                    <div class="text-muted small">缺陷代码总数</div>
+                    <div class="fs-3 fw-bold text-primary">{{ $defectCodes->total() }}</div>
+                </div>
+            </div>
         </div>
-        <div class="bg-orange-50 p-4 rounded-lg">
-            <p class="text-orange-600 text-sm">最近缺陷记录</p>
-            <p class="text-2xl font-bold text-orange-800">{{ $defectRecords->count() }}</p>
+        <div class="col-12 col-md-4">
+            <div class="card border-warning-subtle h-100">
+                <div class="card-body">
+                    <div class="text-muted small">最近缺陷记录</div>
+                    <div class="fs-3 fw-bold text-warning-emphasis">{{ $defectRecords->count() }}</div>
+                </div>
+            </div>
         </div>
-        <div class="bg-green-50 p-4 rounded-lg">
-            <p class="text-green-600 text-sm">启用中代码</p>
-            <p class="text-2xl font-bold text-green-800">{{ $defectCodes->where('active', true)->count() }}</p>
+        <div class="col-12 col-md-4">
+            <div class="card border-success-subtle h-100">
+                <div class="card-body">
+                    <div class="text-muted small">启用中代码</div>
+                    <div class="fs-3 fw-bold text-success">{{ $defectCodes->where('active', true)->count() }}</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    {{-- 缺陷代码字典 --}}
-    <h3 class="font-medium text-gray-700 mb-3">缺陷代码字典</h3>
-    <table class="w-full mb-6">
-        <thead>
-            <tr class="border-b bg-gray-50">
-                <th class="text-left py-2 px-3 text-sm font-medium">代码</th>
-                <th class="text-left py-2 px-3 text-sm font-medium">名称</th>
-                <th class="text-left py-2 px-3 text-sm font-medium">分类</th>
-                <th class="text-left py-2 px-3 text-sm font-medium">描述</th>
-                <th class="text-center py-2 px-3 text-sm font-medium">状态</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($defectCodes as $code)
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-2 px-3 font-mono text-sm">{{ $code->code }}</td>
-                <td class="py-2 px-3 text-sm">{{ $code->name }}</td>
-                <td class="py-2 px-3 text-sm">
-                    <span class="px-2 py-1 rounded text-xs bg-gray-100">{{ $code->category }}</span>
-                </td>
-                <td class="py-2 px-3 text-sm text-gray-500">{{ $code->description ?? '—' }}</td>
-                <td class="py-2 px-3 text-center">
-                    @if($code->active)
-                        <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">启用</span>
-                    @else
-                        <span class="px-2 py-1 rounded text-xs bg-gray-100 text-gray-600">停用</span>
-                    @endif
-                </td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="5" class="py-8 text-center text-gray-400">暂无缺陷代码数据</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
-    {{ $defectCodes->links() }}
+    <div class="card mb-4">
+        <div class="card-header"><i class="fa-solid fa-book me-2"></i>缺陷代码字典</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>代码</th>
+                            <th>名称</th>
+                            <th>分类</th>
+                            <th>描述</th>
+                            <th class="text-center">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($defectCodes as $code)
+                            <tr>
+                                <td class="font-monospace small">{{ $code->code }}</td>
+                                <td>{{ $code->name }}</td>
+                                <td><span class="badge bg-light text-secondary border">{{ $code->category }}</span></td>
+                                <td class="text-muted">{{ $code->description ?? '—' }}</td>
+                                <td class="text-center">
+                                    @if($code->active)
+                                        <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">启用</span>
+                                    @else
+                                        <span class="badge bg-light text-secondary border">停用</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="erp-empty">暂无缺陷代码数据</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
-    {{-- 最近缺陷记录 --}}
-    <h3 class="font-medium text-gray-700 mb-3 mt-6">最近缺陷记录</h3>
-    <table class="w-full">
-        <thead>
-            <tr class="border-b bg-gray-50">
-                <th class="text-left py-2 px-3 text-sm font-medium">记录号</th>
-                <th class="text-left py-2 px-3 text-sm font-medium">缺陷类型</th>
-                <th class="text-left py-2 px-3 text-sm font-medium">缺陷代码</th>
-                <th class="text-left py-2 px-3 text-sm font-medium">物料</th>
-                <th class="text-right py-2 px-3 text-sm font-medium">数量</th>
-                <th class="text-left py-2 px-3 text-sm font-medium">处置方式</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($defectRecords as $record)
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-2 px-3 font-mono text-sm">{{ $record->record_no ?? '—' }}</td>
-                <td class="py-2 px-3 text-sm">{{ $record->defect_type ?? '—' }}</td>
-                <td class="py-2 px-3 text-sm">{{ $record->defectCode?->name ?? '—' }}</td>
-                <td class="py-2 px-3 text-sm">{{ $record->item?->name ?? '—' }}</td>
-                <td class="py-2 px-3 text-right text-sm">{{ $record->quantity }}</td>
-                <td class="py-2 px-3 text-sm">{{ $record->disposition ?? '—' }}</td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="6" class="py-8 text-center text-gray-400">暂无缺陷记录</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
-</div>
+            <div class="d-flex justify-content-end">
+                {{ $defectCodes->links() }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><i class="fa-solid fa-clock-rotate-left me-2"></i>最近缺陷记录</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>记录号</th>
+                            <th>缺陷类型</th>
+                            <th>缺陷代码</th>
+                            <th>物料</th>
+                            <th class="text-end">数量</th>
+                            <th>处置方式</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($defectRecords as $record)
+                            <tr>
+                                <td class="font-monospace small">{{ $record->record_no ?? '—' }}</td>
+                                <td>{{ $record->defect_type ?? '—' }}</td>
+                                <td>{{ $record->defectCode?->name ?? '—' }}</td>
+                                <td>{{ $record->item?->name ?? '—' }}</td>
+                                <td class="text-end">{{ $record->quantity }}</td>
+                                <td>{{ $record->disposition ?? '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="erp-empty">暂无缺陷记录</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 @endsection

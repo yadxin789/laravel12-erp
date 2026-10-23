@@ -1,28 +1,26 @@
-<span class="px-2 py-1 rounded text-xs font-medium
-    @switch($status)
-        @case('draft') bg-gray-100 text-gray-800 @break
-        @case('submitted') bg-blue-100 text-blue-800 @break
-        @case('approved') bg-green-100 text-green-800 @break
-        @case('released') bg-purple-100 text-purple-800 @break
-        @case('ready') bg-teal-100 text-teal-800 @break
-        @case('in_progress') bg-orange-100 text-orange-800 @break
-        @case('paused') bg-yellow-100 text-yellow-800 @break
-        @case('completed') bg-green-100 text-green-800 @break
-        @case('closed') bg-gray-100 text-gray-800 @break
-        @case('cancelled') bg-red-100 text-red-800 @break
-        @case('confirmed') bg-blue-100 text-blue-800 @break
-        @case('partially_delivered') bg-yellow-100 text-yellow-800 @break
-        @case('fully_delivered') bg-green-100 text-green-800 @break
-        @case('partially_received') bg-yellow-100 text-yellow-800 @break
-        @case('fully_received') bg-green-100 text-green-800 @break
-        @case('material_shortage') bg-red-100 text-red-800 @break
-        @case('won') bg-green-100 text-green-800 @break
-        @case('lost') bg-red-100 text-red-800 @break
-        @case('expired') bg-gray-100 text-gray-800 @break
-        @case('change_pending') bg-yellow-100 text-yellow-800 @break
-        @case('rework') bg-purple-100 text-purple-800 @break
-        @default bg-gray-100 text-gray-800
-    @endswitch
-">
-    {{ $status }}
-</span>
+@php
+    $class = match ($status) {
+        'draft' => 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle',
+        'submitted' => 'bg-primary-subtle text-primary-emphasis border-primary-subtle',
+        'approved' => 'bg-success-subtle text-success-emphasis border-success-subtle',
+        'released' => 'bg-info-subtle text-info-emphasis border-info-subtle',
+        'ready' => 'bg-info-subtle text-info-emphasis border-info-subtle',
+        'in_progress' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle',
+        'paused' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle',
+        'completed' => 'bg-success-subtle text-success-emphasis border-success-subtle',
+        'closed' => 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle',
+        'cancelled' => 'bg-danger-subtle text-danger-emphasis border-danger-subtle',
+        'confirmed' => 'bg-primary-subtle text-primary-emphasis border-primary-subtle',
+        'partially_delivered', 'partially_received' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle',
+        'fully_delivered', 'fully_received' => 'bg-success-subtle text-success-emphasis border-success-subtle',
+        'material_shortage' => 'bg-danger-subtle text-danger-emphasis border-danger-subtle',
+        'won' => 'bg-success-subtle text-success-emphasis border-success-subtle',
+        'lost' => 'bg-danger-subtle text-danger-emphasis border-danger-subtle',
+        'expired' => 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle',
+        'change_pending' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle',
+        'rework' => 'bg-info-subtle text-info-emphasis border-info-subtle',
+        default => 'bg-light text-secondary border',
+    };
+@endphp
+
+<span class="badge border {{ $class }}">{{ $status }}</span>

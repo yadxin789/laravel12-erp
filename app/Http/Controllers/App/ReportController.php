@@ -16,7 +16,10 @@ class ReportController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (!auth()->user()->hasAnyRole(['admin', 'viewer', 'accountant', 'sales_manager', 'purchase_manager'])) {
+            $user = auth()->user();
+            $allowed = ['admin', 'viewer', 'accountant', 'sales_manager', 'purchase_manager',
+                'production_manager', 'warehouse_manager', 'quality_manager'];
+            if (! $user || ! $user->hasAnyRole($allowed)) {
                 abort(403, '无报表访问权限');
             }
             return $next($request);
@@ -124,15 +127,17 @@ class ReportController extends Controller
             ->select(
                 DB::raw('MONTH(created_at) as month'),
                 DB::raw('COUNT(*) as total'),
-                DB::raw("SUM(CASE WHEN result = 'passed' THEN 1 ELSE 0 END) as passed"),
-                DB::raw("SUM(CASE WHEN result = 'failed' THEN 1 ELSE 0 END) as failed")
+                // result 实际取值为 QualityResult 枚举值（pass/fail），原 passed/failed 统计永远为 0
+                DB::raw("SUM(CASE WHEN result = 'pass' THEN 1 ELSE 0 END) as passed"),
+                DB::raw("SUM(CASE WHEN result = 'fail' THEN 1 ELSE 0 END) as failed")
             )
             ->groupBy('month')
             ->orderBy('month')
             ->get();
 
-        // 按检验类型统计
-        $byType = QualityInspection::whereYear('created_at', $year)
+        // 按检验类型统计（聚合结果不做枚举转换，视图按原始值取 label）
+        $byType = DB::table('quality_inspections')
+            ->whereYear('created_at', $year)
             ->select('inspection_type', DB::raw('COUNT(*) as total'))
             ->groupBy('inspection_type')
             ->get();

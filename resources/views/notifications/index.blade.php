@@ -1,45 +1,101 @@
 @extends('layouts.business')
+
 @section('title', '通知中心')
+
 @section('content')
-<div class="bg-white shadow rounded-lg p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold">通知中心</h2>
+    @php
+        $typeMap = [
+            'success' => 'bg-success-subtle text-success-emphasis border-success-subtle',
+            'warning' => 'bg-warning-subtle text-warning-emphasis border-warning-subtle',
+            'danger' => 'bg-danger-subtle text-danger-emphasis border-danger-subtle',
+            'error' => 'bg-danger-subtle text-danger-emphasis border-danger-subtle',
+            'info' => 'bg-info-subtle text-info-emphasis border-info-subtle',
+            'logistics' => 'bg-primary-subtle text-primary-emphasis border-primary-subtle',
+            'private_message' => 'bg-info-subtle text-info-emphasis border-info-subtle',
+        ];
+        $typeIcon = [
+            'logistics' => 'fa-truck-fast',
+            'private_message' => 'fa-comment-dots',
+        ];
+        $typeLabel = [
+            'success' => '成功',
+            'warning' => '警告',
+            'danger' => '严重',
+            'error' => '错误',
+            'info' => '信息',
+            'logistics' => '物流',
+            'private_message' => '私聊',
+        ];
+    @endphp
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-regular fa-bell"></i>通知中心</h2>
         <form action="{{ route('notifications.mark-all-read') }}" method="POST">
             @csrf
-            <button type="submit" class="text-blue-500 hover:text-blue-700 text-sm">全部标记为已读</button>
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-check-double me-1"></i>全部标记为已读
+            </button>
         </form>
     </div>
-    @forelse($notifications as $notification)
-    <div class="border rounded p-4 mb-3 {{ $notification->is_read ? 'bg-gray-50' : 'bg-blue-50 border-blue-200' }}">
-        <div class="flex justify-between items-start">
-            <div class="flex-1">
-                <div class="flex items-center gap-2 mb-1">
-                    @if(!$notification->is_read)
-                        <span class="w-2 h-2 bg-blue-500 rounded-full inline-block"></span>
-                    @endif
-                    <span class="text-xs px-2 py-0.5 rounded bg-{{ $notification->type_color }}-100 text-{{ $notification->type_color }}-700">
-                        {{ $notification->type }}
-                    </span>
-                    <span class="text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</span>
+
+    <div class="card">
+        <div class="card-body">
+            @forelse($notifications as $notification)
+                <div class="border rounded p-3 mb-3 {{ ! $notification->is_read ? 'bg-warning-subtle border-warning-subtle' : 'bg-body-tertiary' }}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <span class="badge border {{ $typeMap[$notification->type] ?? 'bg-light text-secondary border' }}">
+                                    @if(isset($typeIcon[$notification->type]))
+                                        <i class="fa-solid {{ $typeIcon[$notification->type] }} me-1"></i>
+                                    @endif
+                                    {{ $typeLabel[$notification->type] ?? $notification->type }}
+                                </span>
+                                @if(! $notification->is_read)
+                                    <span class="badge rounded-pill bg-primary">未读</span>
+                                @endif
+                            </div>
+                            <h5 class="fw-bold mb-1">{{ $notification->title }}</h5>
+                            <div class="text-muted small">{{ $notification->message }}</div>
+                            @if($notification->link)
+                                <a href="{{ route('notifications.read', $notification) }}" class="small text-decoration-none d-inline-block mt-2">
+                                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>查看详情
+                                </a>
+                            @endif
+                        </div>
+                        <div class="text-end ms-3">
+                            <small class="text-muted d-block mb-2">{{ $notification->created_at?->diffForHumans() ?? '-' }}</small>
+                            <div class="btn-group-vertical">
+                                @if(! $notification->is_read)
+                                    <form action="{{ route('notifications.mark-read', $notification) }}" method="POST" class="mb-1">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-secondary">
+                                            <i class="fa-solid fa-check me-1"></i>标为已读
+                                        </button>
+                                    </form>
+                                @endif
+                                <form action="{{ route('notifications.destroy', $notification) }}" method="POST"
+                                      onsubmit="return confirm('确定要清除这条消息吗？清除后不可恢复。')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fa-solid fa-trash-can me-1"></i>清除
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <h4 class="font-semibold text-gray-800">{{ $notification->title }}</h4>
-                <p class="text-gray-600 text-sm mt-1">{{ $notification->message }}</p>
-            </div>
-            <div class="ml-4">
-                <a href="{{ route('notifications.read', $notification) }}" class="text-blue-500 hover:text-blue-700 text-sm whitespace-nowrap">
-                    @if($notification->link) 查看详情 @else 标记已读 @endif
-                </a>
+            @empty
+                <div class="text-center text-muted py-5">
+                    <div class="fs-1 mb-3"><i class="fa-regular fa-bell-slash"></i></div>
+                    <p class="mb-0">暂无通知</p>
+                </div>
+            @endforelse
+
+            <div class="d-flex justify-content-end">
+                {{ $notifications->links() }}
             </div>
         </div>
     </div>
-    @empty
-    <div class="text-gray-500 text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-        </svg>
-        <p class="mt-2">暂无通知</p>
-    </div>
-    @endforelse
-    <div class="mt-4">{{ $notifications->links() }}</div>
-</div>
 @endsection

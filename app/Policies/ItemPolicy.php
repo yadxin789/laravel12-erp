@@ -31,4 +31,13 @@ class ItemPolicy
     {
         return $user->hasPermissionTo('delete items');
     }
+
+    /**
+     * 上传 / 删除物料规格书。
+     * 采购等业务角色只有 view items 权限，也需要维护规格书。
+     */
+    public function uploadSpecSheet(User $user, Item $item)
+    {
+        return $user->hasPermissionTo('view items');
+    }
 }

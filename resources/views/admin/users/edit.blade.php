@@ -3,32 +3,51 @@
 @section('title', '编辑用户')
 
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">编辑用户</h2>
-    <form method="POST" action="{{ route('admin.users.update', $user) }}">
-        @csrf
-        @method('PUT')
-        <div class="mb-4">
-            <label class="block text-gray-700 mb-2">用户名</label>
-            <input type="text" name="name" class="w-full px-4 py-2 border rounded" value="{{ $user->name }}" required>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-user-pen"></i>编辑用户</h2>
+        <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i>返回
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-7">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" action="{{ route('admin.users.update', $user) }}">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="mb-3">
+                            <label class="form-label" for="name">用户名 <span class="text-danger">*</span></label>
+                            <input type="text" id="name" name="name" class="form-control" required value="{{ old('name', $user->name) }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="email">邮箱 <span class="text-danger">*</span></label>
+                            <input type="email" id="email" name="email" class="form-control" required value="{{ old('email', $user->email) }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="password">密码（留空不修改）</label>
+                            <input type="password" id="password" name="password" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="role">岗位角色 <span class="text-danger">*</span></label>
+                            <select id="role" name="role" class="form-select" required>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->name }}" {{ $user->roles->contains($role) ? 'selected' : '' }}>
+                                        {{ \App\Support\RoleCatalog::label($role) }}（{{ $role->name }}）
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i>更新</button>
+                            <a href="{{ route('admin.users.index') }}" class="btn btn-light">取消</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="mb-4">
-            <label class="block text-gray-700 mb-2">邮箱</label>
-            <input type="email" name="email" class="w-full px-4 py-2 border rounded" value="{{ $user->email }}" required>
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700 mb-2">密码（留空不修改）</label>
-            <input type="password" name="password" class="w-full px-4 py-2 border rounded">
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700 mb-2">角色</label>
-            <select name="role" class="w-full px-4 py-2 border rounded" required>
-                @foreach($roles as $role)
-                <option value="{{ $role->name }}" {{ $user->roles->contains($role) ? 'selected' : '' }}>{{ $role->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">更新</button>
-    </form>
-</div>
+    </div>
 @endsection

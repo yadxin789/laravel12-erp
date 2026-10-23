@@ -42,15 +42,21 @@ class MaterialIssueController extends Controller
             'lines.*.quantity' => 'required|integer|min:1',
         ]);
 
+        // issue_no 为唯一且非空字段，需在此生成（原代码未赋值会导致创建失败）
+        $nextId = (int) (MaterialIssue::max('id') ?? 0) + 1;
         $issue = MaterialIssue::create([
+            'issue_no' => 'MI' . date('Ymd') . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
             'production_order_id' => $validated['production_order_id'],
             'issue_date' => $validated['issue_date'],
             'warehouse_id' => $validated['warehouse_id'],
             'status' => 'draft',
         ]);
 
+        // line_number 与 material_issue_id 组成唯一约束，必须递增赋值
+        $lineNumber = 1;
         foreach ($validated['lines'] as $line) {
             $issue->lines()->create([
+                'line_number' => $lineNumber++,
                 'item_id' => $line['item_id'],
                 'quantity' => $line['quantity'],
             ]);

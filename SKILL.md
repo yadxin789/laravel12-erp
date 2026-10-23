@@ -1,14 +1,15 @@
-name: electronics-erp-laravel12-sqlite
+name: electronics-erp-laravel12-mysql
 description: >
-  用于设计、开发、测试和交付基于 Laravel 12 + SQLite 的电子厂 ERP 系统。
+  用于设计、开发、测试和交付基于 Laravel 12 + MySQL 8.4 的电子厂 ERP 系统。
   AI Agent 必须按照本 Skill 完成项目分析、数据库设计、模块开发、权限控制、
-  库存事务、生产管理、质量追溯、测试和部署文档，禁止跳过核心业务规则。
-version: 1.0.0
+  库存事务、生产管理、质量追溯、AI 能力、协作沟通、物流查询、测试和部署文档，
+  禁止跳过核心业务规则。
+version: 1.1.0
 language: zh-CN
 framework: Laravel 12
-runtime: PHP 8.3+
-database: SQLite 3
-frontend: Blade + Livewire 3 + Alpine.js + Tailwind CSS
+runtime: PHP 8.4+
+database: MySQL 8.4（推荐）/ SQLite 3（开发备选）
+frontend: Blade + Bootstrap 5（本地静态资源）+ FontAwesome + ECharts
 project_type: monolithic-modular-erp
 ---
 
@@ -69,7 +70,7 @@ AI Agent 执行任务时必须遵循以下顺序：
   ↓
 实现 Service 和事务
   ↓
-实现 Controller / Livewire
+实现 Controller
   ↓
 实现 Blade 页面
   ↓
@@ -82,17 +83,18 @@ AI Agent 执行任务时必须遵循以下顺序：
 生成交付文档
         
     
-name: electronics-erp-laravel12-sqlite
+name: electronics-erp-laravel12-mysql
 description: >
-用于设计、开发、测试和交付基于 Laravel 12 + SQLite 的电子厂 ERP 系统。
+用于设计、开发、测试和交付基于 Laravel 12 + MySQL 8.4 的电子厂 ERP 系统。
 AI Agent 必须按照本 Skill 完成项目分析、数据库设计、模块开发、权限控制、
-库存事务、生产管理、质量追溯、测试和部署文档，禁止跳过核心业务规则。
-version: 1.0.0
+库存事务、生产管理、质量追溯、AI 能力、协作沟通、物流查询、测试和部署文档，
+禁止跳过核心业务规则。
+version: 1.1.0
 language: zh-CN
 framework: Laravel 12
-runtime: PHP 8.3+
-database: SQLite 3
-frontend: Blade + Livewire 3 + Alpine.js + Tailwind CSS
+runtime: PHP 8.4+
+database: MySQL 8.4（推荐）/ SQLite 3（开发备选）
+frontend: Blade + Bootstrap 5（本地静态资源）+ FontAwesome + ECharts
 project_type: monolithic-modular-erp
 电子厂 ERP Laravel 12 开发 Skill
 1. Skill 目标
@@ -154,7 +156,7 @@ text
   ↓
 实现 Service 和事务
   ↓
-实现 Controller / Livewire
+实现 Controller
   ↓
 实现 Blade 页面
   ↓
@@ -184,6 +186,8 @@ text
 使用库存流水记录所有库存变化；
 使用 Migration 管理数据库结构；
 使用自动化测试验证核心流程。
+使用 Bootstrap 5 编写所有页面（本项目前端已统一为 Bootstrap 5 + FontAwesome 本地静态资源，禁止 Tailwind 类与 Vue/Alpine 指令）；
+将外部服务（AI、物流查询等）封装在 Service 中，并对「未配置鉴权 / 网络异常」提供分级回退与界面标注；
 3.2 禁止行为
 禁止：
 
@@ -201,6 +205,11 @@ text
 在事务中执行外部 HTTP 请求；
 在代码中写死客户、供应商或仓库名称；
 未测试就声明任务完成。
+未注册服务提供者就声明权限生效（Policy 必须在 bootstrap/providers.php 注册 AuthServiceProvider，否则 Gate::getPolicyFor() 返回 null，所有 authorize() 一律拒绝）；
+关系中省略外键（外键名不是 <模型>_id 时必须显式声明，如 hasMany(AiModel::class, 'provider_id')）；
+在 Blade 中直接输出已 cast 为枚举的字段（必须调用 ->label()）；
+在 Blade 中使用动态拼接的 CSS 类名（如 bg-{{ $color }}-100，构建工具扫不到，永远不生效）；
+外部服务集成没有回退（正式 API → 免鉴权公共接口 → 演示数据，且演示数据必须在界面明确标注，不得伪装成真实数据）。
 4. 执行前环境检查
 AI Agent 开始开发前，必须执行并记录以下检查。
 
@@ -229,7 +238,7 @@ php artisan --version
 php artisan about
         
     
-检查 SQLite：
+检查数据库扩展（MySQL 生产 / SQLite 开发）：
 
         
 bash
@@ -242,7 +251,8 @@ bash
 
         
             
-php -m | grep -i sqlite
+php -m | grep -iE "pdo_mysql|mysqli|sqlite"
+php -r "var_dump(extension_loaded('pdo_mysql'));"
 php -r "var_dump(extension_loaded('pdo_sqlite'));"
 php -r "var_dump(extension_loaded('sqlite3'));"
         
@@ -272,7 +282,7 @@ git branch --show-current
 如果用户允许升级，再执行升级；
 如果不允许升级，必须使用当前项目版本兼容方式；
 不得删除现有业务代码。
-如果缺少 SQLite 扩展：
+如果缺少数据库扩展（生产缺 pdo_mysql，或开发缺 pdo_sqlite）：
 
 输出明确错误；
 不得继续执行数据库测试；
@@ -332,11 +342,11 @@ bash
         
             
 composer install
-npm install
+# npm install 可跳过：前端样式为 public/css、public/js 下的本地静态资源
         
     
-5.2 SQLite 初始化
-创建数据库：
+5.2 数据库初始化（MySQL 生产推荐 / SQLite 开发备选）
+创建数据库（MySQL）：
 
         
 bash
@@ -349,6 +359,9 @@ bash
 
         
             
+mysql -u root -p -e "CREATE DATABASE laravel12_erp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# 开发备选（SQLite）
 mkdir -p database
 touch database/database.sqlite
         
@@ -370,8 +383,16 @@ APP_ENV=local
 APP_DEBUG=true
 APP_URL=http://localhost
 
-DB_CONNECTION=sqlite
-DB_DATABASE=/absolute/path/to/database/database.sqlite
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=laravel12_erp
+DB_USERNAME=root
+DB_PASSWORD=root
+
+# 开发备选（SQLite）
+# DB_CONNECTION=sqlite
+# DB_DATABASE=/absolute/path/to/database/database.sqlite
 
 QUEUE_CONNECTION=database
 CACHE_STORE=file
@@ -410,7 +431,6 @@ bash
 
         
             
-composer require livewire/livewire
 composer require spatie/laravel-permission
 composer require laravel/sanctum
 composer require --dev pestphp/pest
@@ -448,14 +468,16 @@ app/
 │   │   └── Quality/
 │   ├── Requests/
 │   └── Middleware/
-├── Livewire/
 ├── Models/
 │   ├── MasterData/
 │   ├── Sales/
 │   ├── Purchasing/
 │   ├── Inventory/
 │   ├── Production/
-│   └── Quality/
+│   ├── Quality/
+│   ├── System/          # AI 供应商/模型/会话/消息/附件、通知、审批流
+│   ├── Chat/            # 群聊私聊消息、清空状态
+│   └── Logistics/       # 快递通道/公司、运单、轨迹
 ├── Policies/
 ├── Services/
 │   ├── InventoryService.php
@@ -682,6 +704,18 @@ permissions
 audit_logs
 approval_instances
 approval_records
+notifications
+ai_settings
+ai_providers
+ai_models
+ai_conversations
+ai_messages
+ai_attachments
+chat_messages
+chat_clear_states
+express_providers
+logistics_shipments
+logistics_traces
 number_sequences
 system_settings
 attachments
@@ -1619,6 +1653,20 @@ json
         
     
 21. 前端页面执行标准
+21.0 前端框架约束
+必须使用 Bootstrap 5 工具类与组件（card / table / badge / list-group / form-* / btn / row+col）；
+
+禁止使用 Tailwind 类（bg-gray-100、rounded-lg、px-4 py-2、grid-cols-* 等）；
+
+禁止使用 Vue/Alpine 指令（:class=、v-if=、x-data=）——Blade 只是把它们当普通属性，永远不会生效；
+
+图标统一使用 FontAwesome（fa-solid / fa-regular）；
+
+图表使用 ECharts，脚本统一放在 @push('scripts')，不得在页面内散落 <script>；
+
+样式写在 public/css/erp.css（erp-* 命名空间），不得内联大段 style；
+
+不得引入 Tailwind CDN 或新增 Vite/Tailwind 构建依赖。
 21.1 页面必须具备
 页面标题；
 面包屑；
@@ -1971,15 +2019,15 @@ bash
             
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force
+php artisan storage:link
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-npm ci
-npm run build
+# 前端为 public/ 下的本地静态资源（Bootstrap 5 / FontAwesome / ECharts），无需 npm ci / npm run build
         
     
 27.3 备份要求
-每日自动备份 SQLite 文件；
+每日自动备份：MySQL 使用 mysqldump 导出全库，同时备份 storage/app（头像、附件、AI 聊天文件）；
 备份附件目录；
 备份 .env 的安全副本；
 备份迁移版本；
@@ -2170,7 +2218,7 @@ text
 - 配置数据范围。
 
 第七步：实现界面
-- 创建 Controller 或 Livewire；
+- 创建 Controller；
 - 创建列表页；
 - 创建表单页；
 - 创建详情页；

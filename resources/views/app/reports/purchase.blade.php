@@ -1,46 +1,78 @@
 @extends('layouts.business')
+
 @section('title', '采购统计报表')
+
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <div class="flex justify-between mb-4">
-        <h2 class="text-xl font-bold">采购统计 {{ $year }}年</h2>
-        <a href="{{ route('app.reports.index') }}" class="text-sm text-gray-500">← 返回报表中心</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-cart-shopping"></i>采购统计 {{ $year }}年</h2>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <form method="GET" action="{{ route('app.reports.purchase') }}" class="d-flex gap-2 align-items-center">
+                <input type="number" name="year" class="form-control" style="width: 110px;" value="{{ $year }}" min="2000" max="2100">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-magnifying-glass me-1"></i>查询</button>
+            </form>
+            <a href="{{ route('app.reports.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i>报表中心
+            </a>
+        </div>
     </div>
 
-    <h3 class="font-bold mb-2">按月统计</h3>
-    <table class="w-full text-sm mb-6">
-        <thead><tr class="bg-gray-100">
-            <th class="px-3 py-2 text-left">月份</th>
-            <th class="px-3 py-2 text-right">订单数</th>
-            <th class="px-3 py-2 text-right">采购金额</th>
-        </tr></thead>
-        <tbody>
-        @foreach($monthly as $m)
-            <tr class="border-b">
-                <td class="px-3 py-2">{{ $m->month }}月</td>
-                <td class="px-3 py-2 text-right">{{ $m->order_count }}</td>
-                <td class="px-3 py-2 text-right">¥{{ number_format($m->total_amount, 2) }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
+    <div class="card mb-4">
+        <div class="card-header"><i class="fa-solid fa-calendar-days me-2"></i>按月统计</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>月份</th>
+                            <th class="text-end">订单数</th>
+                            <th class="text-end">采购金额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($monthly as $m)
+                            <tr>
+                                <td>{{ $m->month }}月</td>
+                                <td class="text-end">{{ $m->order_count }}</td>
+                                <td class="text-end">¥{{ number_format($m->total_amount ?? 0, 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="erp-empty">{{ $year }} 年暂无采购数据</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-    <h3 class="font-bold mb-2">供应商采购 Top 10</h3>
-    <table class="w-full text-sm">
-        <thead><tr class="bg-gray-100">
-            <th class="px-3 py-2 text-left">供应商</th>
-            <th class="px-3 py-2 text-right">订单数</th>
-            <th class="px-3 py-2 text-right">累计金额</th>
-        </tr></thead>
-        <tbody>
-        @foreach($bySupplier as $row)
-            <tr class="border-b">
-                <td class="px-3 py-2">{{ $row->supplier?->name }}</td>
-                <td class="px-3 py-2 text-right">{{ $row->cnt }}</td>
-                <td class="px-3 py-2 text-right">¥{{ number_format($row->total, 2) }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-</div>
+    <div class="card">
+        <div class="card-header"><i class="fa-solid fa-ranking-star me-2"></i>供应商采购 Top 10</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>供应商</th>
+                            <th class="text-end">订单数</th>
+                            <th class="text-end">累计金额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($bySupplier as $row)
+                            <tr>
+                                <td>{{ $row->supplier?->name ?? '-' }}</td>
+                                <td class="text-end">{{ $row->cnt }}</td>
+                                <td class="text-end">¥{{ number_format($row->total ?? 0, 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="erp-empty">暂无供应商采购数据</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 @endsection

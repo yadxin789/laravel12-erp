@@ -3,66 +3,90 @@
 @section('title', '报价单详情')
 
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-gray-800">报价单: {{ $quotation->quotation_no }}</h2>
-        <div>
-            @if($quotation->status === 'draft')
-            <form action="{{ route('app.sales.quotations.submit', $quotation) }}" method="POST" class="inline">
-                @csrf
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">提交报价</button>
-            </form>
+    @php
+        use App\Enums\QuotationStatus;
+        $status = $quotation->status;
+    @endphp
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-file-lines"></i>报价单: {{ $quotation->quote_no }}</h2>
+        <div class="d-flex flex-wrap gap-2">
+            @if($status === QuotationStatus::Draft)
+                <form action="{{ route('app.sales.quotations.submit', $quotation) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane me-1"></i>提交报价</button>
+                </form>
             @endif
-            @if($quotation->status === 'submitted')
-            <form action="{{ route('app.sales.quotations.convert', $quotation) }}" method="POST" class="inline">
-                @csrf
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">生成销售订单</button>
-            </form>
+            @if($status === QuotationStatus::Submitted)
+                <form action="{{ route('app.sales.quotations.convert', $quotation) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-right-left me-1"></i>生成销售订单</button>
+                </form>
             @endif
-        </div>
-    </div>
-    
-    <div class="grid grid-cols-4 gap-4 mb-6">
-        <div>
-            <p class="text-gray-500 text-sm">客户</p>
-            <p class="font-medium">{{ $quotation->customer?->name }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">报价日期</p>
-            <p class="font-medium">{{ $quotation->quotation_date }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">有效期至</p>
-            <p class="font-medium">{{ $quotation->valid_until }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">状态</p>
-            <p class="font-medium">{{ $quotation->status }}</p>
+            <a href="{{ route('app.sales.quotations.index') }}" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-arrow-left me-1"></i>返回
+            </a>
         </div>
     </div>
 
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">报价明细</h3>
-    <table class="w-full">
-        <thead>
-            <tr class="border-b">
-                <th class="text-left py-3">物料</th>
-                <th class="text-left py-3">规格</th>
-                <th class="text-right py-3">数量</th>
-                <th class="text-right py-3">单价</th>
-                <th class="text-right py-3">金额</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($quotation->lines as $line)
-            <tr class="border-b">
-                <td class="py-3">{{ $line->item?->name }}</td>
-                <td class="py-3">{{ $line->item?->spec }}</td>
-                <td class="py-3 text-right">{{ $line->quantity }}</td>
-                <td class="py-3 text-right">{{ $line->unit_price }}</td>
-                <td class="py-3 text-right">{{ $line->amount }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-</div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">客户</div>
+                    <div class="fw-semibold">{{ $quotation->customer?->name ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">报价日期</div>
+                    <div class="fw-semibold">{{ $quotation->quote_date }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">有效期至</div>
+                    <div class="fw-semibold">{{ $quotation->valid_until ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">状态</div>
+                    <div><span class="badge bg-light text-secondary border">{{ $status?->label() ?? '-' }}</span></div>
+                </div>
+                <div class="col-12">
+                    <div class="text-muted small">报价金额</div>
+                    <div class="fw-semibold">¥{{ number_format($quotation->total_amount ?? 0, 2) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><i class="fa-solid fa-list me-2"></i>报价明细</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>物料</th>
+                            <th>规格</th>
+                            <th class="text-end">数量</th>
+                            <th class="text-end">单价</th>
+                            <th class="text-end">金额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($quotation->lines as $line)
+                            <tr>
+                                <td>{{ $line->item?->name }}</td>
+                                <td>{{ $line->item?->spec }}</td>
+                                <td class="text-end">{{ $line->quantity }}</td>
+                                <td class="text-end">{{ $line->unit_price }}</td>
+                                <td class="text-end">{{ $line->amount }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="erp-empty">暂无报价明细</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 @endsection

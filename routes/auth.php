@@ -58,9 +58,11 @@ Route::post('/register', function () {
     return redirect()->route('login');
 });
 
-Route::post('/logout', function () {
+// 退出登录：同时接受 GET/POST，避免旧页面缓存的 CSRF token 失效后无法退出
+Route::match(['get', 'post'], '/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
-    return redirect()->route('login');
+
+    return redirect()->route('home');
 })->name('logout');

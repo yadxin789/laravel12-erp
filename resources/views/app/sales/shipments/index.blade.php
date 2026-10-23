@@ -3,37 +3,57 @@
 @section('title', '发货管理')
 
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-gray-800">发货管理</h2>
-        <a href="{{ route('app.sales.shipments.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">新建发货单</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-truck"></i>发货管理</h2>
+        @can('create', \App\Models\Sales\SalesOrder::class)
+        <a href="{{ route('app.sales.shipments.create') }}" class="btn btn-primary">
+            <i class="fa-solid fa-plus me-1"></i>新建发货单
+        </a>
+        @endcan
     </div>
-    <table class="w-full">
-        <thead>
-            <tr class="border-b">
-                <th class="text-left py-3">发货单号</th>
-                <th class="text-left py-3">销售订单</th>
-                <th class="text-left py-3">仓库</th>
-                <th class="text-left py-3">发货日期</th>
-                <th class="text-center py-3">状态</th>
-                <th class="text-right py-3">操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($shipments as $shipment)
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-3">{{ $shipment->shipment_no }}</td>
-                <td class="py-3">{{ $shipment->salesOrder?->order_no }}</td>
-                <td class="py-3">{{ $shipment->warehouse?->name }}</td>
-                <td class="py-3">{{ $shipment->shipment_date }}</td>
-                <td class="py-3 text-center">{{ $shipment->status }}</td>
-                <td class="py-3 text-right">
-                    <a href="{{ route('app.sales.shipments.show', $shipment) }}" class="text-blue-600 hover:text-blue-800">查看</a>
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    {{ $shipments->links() }}
-</div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>发货单号</th>
+                            <th>销售订单</th>
+                            <th>仓库</th>
+                            <th>发货日期</th>
+                            <th class="text-center">状态</th>
+                            <th class="text-end" style="width: 100px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($shipments as $shipment)
+                            <tr>
+                                <td class="font-monospace small">{{ $shipment->shipment_no }}</td>
+                                <td>{{ $shipment->salesOrder?->order_no ?? '-' }}</td>
+                                <td>{{ $shipment->warehouse?->name ?? '-' }}</td>
+                                <td>{{ $shipment->shipment_date }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-secondary border">{{ $shipment->status ?? '-' }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ route('app.sales.shipments.show', $shipment) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fa-regular fa-eye"></i>查看
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="erp-empty">暂无发货单</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                {{ $shipments->links() }}
+            </div>
+        </div>
+    </div>
 @endsection

@@ -3,66 +3,89 @@
 @section('title', '生产计划')
 
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-gray-800">生产计划</h2>
-        <div class="space-x-2">
-            <a href="{{ route('app.production.plans.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">新建计划</a>
-            <form action="{{ route('app.production.plans.mrp') }}" method="POST" class="inline">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-calendar-days"></i>生产计划</h2>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="{{ route('app.production.plans.create') }}" class="btn btn-primary">
+                <i class="fa-solid fa-plus me-1"></i>新建计划
+            </a>
+            <form action="{{ route('app.production.plans.mrp') }}" method="POST" class="d-flex gap-2">
                 @csrf
-                <div class="inline-flex items-center">
-                    <input type="number" name="horizon_days" value="30" class="w-20 px-2 py-2 border rounded mr-2" placeholder="天数">
-                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">运行MRP</button>
-                </div>
+                <input type="number" name="horizon_days" value="30" min="1" class="form-control" style="width: 90px;" placeholder="天数">
+                <button type="submit" class="btn btn-success"><i class="fa-solid fa-gears me-1"></i>运行MRP</button>
             </form>
         </div>
     </div>
-    <table class="w-full">
-        <thead>
-            <tr class="border-b">
-                <th class="text-left py-3">计划号</th>
-                <th class="text-left py-3">计划日期</th>
-                <th class="text-center py-3">明细行数</th>
-                <th class="text-left py-3">状态</th>
-                <th class="text-left py-3">创建人</th>
-                <th class="text-left py-3">创建时间</th>
-                <th class="text-right py-3">操作</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($plans as $plan)
-            <tr class="border-b hover:bg-gray-50">
-                <td class="py-3 text-blue-600">{{ $plan->plan_no }}</td>
-                <td class="py-3">{{ $plan->plan_date }}</td>
-                <td class="py-3 text-center">{{ $plan->lines->count() }}</td>
-                <td class="py-3 text-center">
-                    <span class="px-2 py-1 rounded text-sm {{ $plan->status === 'draft' ? 'bg-gray-100 text-gray-800' : ($plan->status === 'approved' ? 'bg-green-100 text-green-800' : ($plan->status === 'converted' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100')) }}">
-                        {{ $plan->status->label() }}
-                    </span>
-                </td>
-                <td class="py-3">{{ $plan->creator?->name }}</td>
-                <td class="py-3">{{ $plan->created_at }}</td>
-                <td class="py-3 text-right">
-                    <a href="{{ route('app.production.plans.show', $plan) }}" class="text-blue-600 hover:text-blue-800 mr-2">查看</a>
-                    @if($plan->canUpdate())
-                    <a href="{{ route('app.production.plans.edit', $plan) }}" class="text-green-600 hover:text-green-800 mr-2">编辑</a>
-                    @endif
-                    @if($plan->canDelete())
-                    <form action="{{ route('app.production.plans.destroy', $plan) }}" method="POST" class="inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="text-red-600 hover:text-red-800" onclick="return confirm('确定删除此计划吗？')">删除</button>
-                    </form>
-                    @endif
-                </td>
-            </tr>
-            @empty
-            <tr class="border-b">
-                <td class="py-8 text-center text-gray-400" colspan="7">暂无生产计划数据，点击"新建计划"创建</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
-    {{ $plans->links() }}
-</div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>计划号</th>
+                            <th>计划日期</th>
+                            <th class="text-center">明细行数</th>
+                            <th class="text-center">状态</th>
+                            <th>创建人</th>
+                            <th>创建时间</th>
+                            <th class="text-end" style="width: 180px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($plans as $plan)
+                            @php
+                                $badge = match (true) {
+                                    $plan->status === \App\Enums\ProductionPlanStatus::Approved => 'bg-success-subtle text-success-emphasis border border-success-subtle',
+                                    $plan->status === \App\Enums\ProductionPlanStatus::Converted => 'bg-primary-subtle text-primary-emphasis border border-primary-subtle',
+                                    $plan->status === \App\Enums\ProductionPlanStatus::Closed => 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle',
+                                    default => 'bg-light text-secondary border',
+                                };
+                            @endphp
+                            <tr>
+                                <td class="font-monospace small">{{ $plan->plan_no }}</td>
+                                <td>{{ $plan->plan_date?->format('Y-m-d') ?? '-' }}</td>
+                                <td class="text-center">{{ $plan->lines->count() }}</td>
+                                <td class="text-center">
+                                    <span class="badge {{ $badge }}">{{ $plan->status?->label() ?? '-' }}</span>
+                                </td>
+                                <td>{{ $plan->creator?->name ?? '-' }}</td>
+                                <td>{{ $plan->created_at?->format('Y-m-d H:i') ?? '-' }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('app.production.plans.show', $plan) }}" class="btn btn-outline-primary">
+                                            <i class="fa-regular fa-eye"></i>查看
+                                        </a>
+                                        @if($plan->canUpdate())
+                                            <a href="{{ route('app.production.plans.edit', $plan) }}" class="btn btn-outline-secondary">
+                                                <i class="fa-regular fa-pen-to-square"></i>编辑
+                                            </a>
+                                        @endif
+                                        @if($plan->canDelete())
+                                            <form action="{{ route('app.production.plans.destroy', $plan) }}" method="POST" class="d-inline"
+                                                  onsubmit="return confirm('确定删除此计划吗？')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger">
+                                                    <i class="fa-regular fa-trash-can"></i>删除
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="erp-empty">暂无生产计划数据，点击"新建计划"创建</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                {{ $plans->links() }}
+            </div>
+        </div>
+    </div>
 @endsection

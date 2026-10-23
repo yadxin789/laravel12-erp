@@ -1,38 +1,79 @@
 @extends('layouts.business')
+
 @section('title', '客户信用评估')
+
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <div class="flex justify-between mb-4">
-        <h2 class="text-xl font-bold">👤 客户信用评估</h2>
-        <a href="{{ route('app.ai.analysis-center') }}" class="text-sm text-gray-500">← 返回</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-user-shield"></i>客户信用评估</h2>
+        <a href="{{ route('app.ai.analysis-center') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i>返回
+        </a>
     </div>
-    <form method="GET" class="mb-6 flex gap-2">
-        <select name="customer_id" class="border rounded px-3 py-2">
-            <option value="">选择客户...</option>
-            @foreach($customers as $c)
-            <option value="{{ $c->id }}" {{ request('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
-            @endforeach
-        </select>
-        <button class="bg-blue-600 text-white px-4 py-2 rounded">评估</button>
-    </form>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('app.ai.customer-credit') }}" class="row g-3 align-items-end">
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="customer_id">选择客户</label>
+                    <select id="customer_id" name="customer_id" class="form-select">
+                        <option value="">选择客户...</option>
+                        @foreach($customers as $c)
+                            <option value="{{ $c->id }}" {{ request('customer_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-12 col-md-auto">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass me-1"></i>评估</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     @if($result)
-    <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <div class="border rounded p-3"><span class="text-gray-500">客户：</span>{{ $result['customer']->name }}</div>
-        <div class="border rounded p-3"><span class="text-gray-500">历史订单：</span>{{ $result['stats']['orderCount'] }}笔 / ¥{{ number_format($result['stats']['orderTotal']) }}</div>
-        <div class="border rounded p-3"><span class="text-gray-500">应收总额：</span>¥{{ number_format($result['stats']['totalReceivable']) }}</div>
-        <div class="border rounded p-3"><span class="text-gray-500">未收余额：</span>¥{{ number_format($result['stats']['outstanding']) }}</div>
-        <div class="border rounded p-3"><span class="text-gray-500">逾期笔数：</span>{{ $result['stats']['overdueCount'] }}</div>
-        <div class="border rounded p-3"><span class="text-gray-500">当前额度：</span>¥{{ number_format($result['customer']->credit_limit) }}</div>
-    </div>
-    @if(!empty($result['assessment']))
-    <div class="bg-blue-50 border rounded p-4">
-        <h3 class="font-bold mb-2">AI 评估结果</h3>
-        <p><span class="px-2 py-1 bg-blue-600 text-white rounded">{{ $result['assessment']['grade'] ?? '?' }} 级</span></p>
-        <p class="mt-2 text-sm"><span class="text-gray-500">建议额度：</span>¥{{ number_format(($result['assessment']['suggest_limit'] ?? 0) * 10000) }}</p>
-        <p class="text-sm mt-1">{{ $result['assessment']['reason'] ?? '' }}</p>
-    </div>
+        <div class="card mb-4">
+            <div class="card-header"><i class="fa-solid fa-chart-column me-2"></i>客户数据统计</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">客户</div>
+                        <div class="fw-semibold">{{ $result['customer']->name }}</div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">历史订单</div>
+                        <div class="fw-semibold">{{ $result['stats']['orderCount'] }} 笔 / ¥{{ number_format($result['stats']['orderTotal'] ?? 0, 2) }}</div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">应收总额</div>
+                        <div class="fw-semibold">¥{{ number_format($result['stats']['totalReceivable'] ?? 0, 2) }}</div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">未收余额</div>
+                        <div class="fw-semibold">¥{{ number_format($result['stats']['outstanding'] ?? 0, 2) }}</div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">逾期笔数</div>
+                        <div class="fw-semibold">{{ $result['stats']['overdueCount'] ?? 0 }}</div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="text-muted small">当前额度</div>
+                        <div class="fw-semibold">¥{{ number_format($result['customer']->credit_limit ?? 0, 2) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if(!empty($result['assessment']))
+            <div class="card border-primary-subtle">
+                <div class="card-header"><i class="fa-solid fa-robot me-2"></i>AI 评估结果</div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <span class="badge bg-primary">{{ $result['assessment']['grade'] ?? '?' }} 级</span>
+                        <span class="text-muted small">建议额度：</span>
+                        <span class="fw-semibold">¥{{ number_format(($result['assessment']['suggest_limit'] ?? 0) * 10000, 2) }}</span>
+                    </div>
+                    <p class="mb-0 text-muted">{{ $result['assessment']['reason'] ?? '' }}</p>
+                </div>
+            </div>
+        @endif
     @endif
-    @endif
-</div>
 @endsection

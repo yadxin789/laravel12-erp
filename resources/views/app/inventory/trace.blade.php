@@ -3,48 +3,72 @@
 @section('title', '批次追踪')
 
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">批次追踪</h2>
-    <form method="POST" action="{{ route('app.inventory.trace.search') }}" class="mb-4">
-        @csrf
-        <div class="grid grid-cols-3 gap-4">
-            <div>
-                <label class="block text-gray-700 mb-2">批次号</label>
-                <input type="text" name="batch_number" class="w-full px-4 py-2 border rounded" required placeholder="输入批次号">
-            </div>
-            <div>
-                <label class="block text-gray-700 mb-2">&nbsp;</label>
-                <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">查询</button>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-magnifying-glass"></i>批次追踪</h2>
+        <a href="{{ route('app.inventory.index') }}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i>返回
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="POST" action="{{ route('app.inventory.trace.search') }}" class="row g-3 align-items-end">
+                @csrf
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="batch_number">批次号 <span class="text-danger">*</span></label>
+                    <input type="text" id="batch_number" name="batch_number" class="form-control" required
+                           placeholder="输入批次号" value="{{ old('batch_number', $batch_number ?? '') }}">
+                </div>
+                <div class="col-12 col-md-auto">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass me-1"></i>查询</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if(isset($transactions) && $transactions->isNotEmpty())
+        <div class="card">
+            <div class="card-header"><i class="fa-solid fa-clock-rotate-left me-2"></i>批次 {{ $batch_number }} 的流转记录</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>事务单号</th>
+                                <th>类型</th>
+                                <th>物料</th>
+                                <th>仓库</th>
+                                <th class="text-end">数量</th>
+                                <th>时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($transactions as $transaction)
+                                <tr>
+                                    <td class="font-monospace small">{{ $transaction->transaction_no }}</td>
+                                    <td><span class="badge bg-light text-secondary border">{{ $transaction->transaction_type?->label() ?? '-' }}</span></td>
+                                    <td>{{ $transaction->item?->name ?? '-' }}</td>
+                                    <td>{{ $transaction->warehouse?->name ?? '-' }}</td>
+                                    <td class="text-end">{{ $transaction->quantity }}</td>
+                                    <td>{{ $transaction->created_at?->format('Y-m-d H:i') ?? '-' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </form>
-    
-    @if(isset($transactions) && $transactions->count() > 0)
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">批次 {{ $batch_number }} 的流转记录</h3>
-    <table class="w-full">
-        <thead>
-            <tr class="border-b">
-                <th class="text-left py-3">交易单号</th>
-                <th class="text-left py-3">交易类型</th>
-                <th class="text-left py-3">仓库</th>
-                <th class="text-right py-3">数量</th>
-                <th class="text-left py-3">时间</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($transactions as $transaction)
-            <tr class="border-b">
-                <td class="py-3">{{ $transaction->transaction_no }}</td>
-                <td class="py-3">{{ $transaction->transaction_type }}</td>
-                <td class="py-3">{{ $transaction->warehouse?->name }}</td>
-                <td class="py-3 text-right">{{ $transaction->quantity }}</td>
-                <td class="py-3">{{ $transaction->created_at }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+    @elseif(isset($transactions))
+        <div class="card">
+            <div class="card-body">
+                <p class="text-muted mb-0">批次 {{ $batch_number }} 暂无流转记录</p>
+            </div>
+        </div>
     @else
-    <p class="text-gray-500">请输入批次号进行查询</p>
+        <div class="card">
+            <div class="card-body">
+                <p class="text-muted mb-0">请输入批次号进行查询</p>
+            </div>
+        </div>
     @endif
-</div>
 @endsection

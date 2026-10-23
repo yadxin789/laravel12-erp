@@ -3,40 +3,47 @@
 @section('title', '创建仓库')
 
 @section('content')
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold">创建仓库</h2>
-        <a href="{{ route('admin.warehouses.index') }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">返回</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-plus"></i>创建仓库</h2>
+        <a href="{{ route('admin.warehouses.index') }}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i>返回
+        </a>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="POST" action="{{ route('admin.warehouses.store') }}">
-            @csrf
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block mb-2 font-medium">仓库编码</label>
-                    <input type="text" name="code" required class="w-full border border-gray-300 rounded px-3 py-2">
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ route('admin.warehouses.store') }}">
+                @csrf
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="code">仓库编码 <span class="text-danger">*</span></label>
+                        <input type="text" id="code" name="code" required value="{{ old('code') }}" class="form-control">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="name">仓库名称 <span class="text-danger">*</span></label>
+                        <input type="text" id="name" name="name" required value="{{ old('name') }}" class="form-control">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="type">仓库类型</label>
+                        <select id="type" name="type" class="form-select">
+                            <option value="raw_material" {{ old('type') === 'raw_material' ? 'selected' : '' }}>原材料仓</option>
+                            <option value="work_in_progress" {{ old('type') === 'work_in_progress' ? 'selected' : '' }}>半成品仓</option>
+                            <option value="finished_goods" {{ old('type') === 'finished_goods' ? 'selected' : '' }}>成品仓</option>
+                            <option value="waste" {{ old('type') === 'waste' ? 'selected' : '' }}>废品仓</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="address">地址</label>
+                        <input type="text" id="address" name="address" value="{{ old('address') }}" class="form-control">
+                    </div>
                 </div>
-                <div>
-                    <label class="block mb-2 font-medium">仓库名称</label>
-                    <input type="text" name="name" required class="w-full border border-gray-300 rounded px-3 py-2">
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i>保存</button>
+                    <a href="{{ route('admin.warehouses.index') }}" class="btn btn-light">取消</a>
                 </div>
-                <div>
-                    <label class="block mb-2 font-medium">仓库类型</label>
-                    <select name="type" class="w-full border border-gray-300 rounded px-3 py-2">
-                        <option value="raw_material">原材料仓</option>
-                        <option value="work_in_progress">半成品仓</option>
-                        <option value="finished_goods">成品仓</option>
-                        <option value="waste">废品仓</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block mb-2 font-medium">地址</label>
-                    <input type="text" name="address" class="w-full border border-gray-300 rounded px-3 py-2">
-                </div>
-            </div>
-            <div class="mt-6">
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">保存</button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 @endsection

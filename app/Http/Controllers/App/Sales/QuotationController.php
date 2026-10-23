@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\App\Sales;
 
+use App\Enums\QuotationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Sales\Quotation;
 use App\Models\MasterData\Customer;
@@ -47,11 +48,14 @@ class QuotationController extends Controller
             'lines.*.unit_price' => 'required|numeric|min:0',
         ]);
 
+        // 数据表字段为 quote_no / quote_date，与表单提交的 quotation_date 做映射
+        $nextId = (int) (Quotation::withTrashed()->max('id') ?? 0) + 1;
         $quotation = Quotation::create([
+            'quote_no' => 'QT' . date('Ymd') . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
             'customer_id' => $validated['customer_id'],
-            'quotation_date' => $validated['quotation_date'],
+            'quote_date' => $validated['quotation_date'],
             'valid_until' => $validated['valid_until'],
-            'status' => 'draft',
+            'status' => QuotationStatus::Draft,
         ]);
 
         foreach ($validated['lines'] as $line) {

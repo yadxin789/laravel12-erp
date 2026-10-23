@@ -3,46 +3,68 @@
 @section('title', '检验单详情')
 
 @section('content')
-<div class="bg-white rounded-lg shadow p-6">
-    <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-gray-800">检验单: {{ $inspection->inspection_no }}</h2>
+    @php
+        $result = $inspection->result;
+        $resultBadge = match ($result) {
+            \App\Enums\QualityResult::Pass => 'bg-success-subtle text-success-emphasis border border-success-subtle',
+            \App\Enums\QualityResult::Fail => 'bg-danger-subtle text-danger-emphasis border border-danger-subtle',
+            \App\Enums\QualityResult::Conditional => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+            \App\Enums\QualityResult::Waived => 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle',
+            default => 'bg-light text-secondary border',
+        };
+    @endphp
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-clipboard-check"></i>检验单: {{ $inspection->inspection_no }}</h2>
+        <a href="{{ route('app.quality.inspections.index') }}" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i>返回
+        </a>
     </div>
-    
-    <div class="grid grid-cols-4 gap-4 mb-6">
-        <div>
-            <p class="text-gray-500 text-sm">检验类型</p>
-            <p class="font-medium">{{ $inspection->inspection_type }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">检验日期</p>
-            <p class="font-medium">{{ $inspection->inspection_date }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">物料</p>
-            <p class="font-medium">{{ $inspection->item?->name }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">批次号</p>
-            <p class="font-medium">{{ $inspection->batch_number ?? '-' }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">检验数量</p>
-            <p class="font-medium">{{ $inspection->inspected_size }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">合格数量</p>
-            <p class="font-medium text-green-600">{{ $inspection->qualified_size }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">不合格数量</p>
-            <p class="font-medium text-red-600">{{ $inspection->rejected_size }}</p>
-        </div>
-        <div>
-            <p class="text-gray-500 text-sm">结果</p>
-            <p class="font-medium {{ $inspection->result === 'qualified' ? 'text-green-600' : 'text-red-600' }}">
-                {{ $inspection->result === 'qualified' ? '合格' : '不合格' }}
-            </p>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">检验类型</div>
+                    <div class="fw-semibold">{{ $inspection->inspection_type?->label() ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">检验日期</div>
+                    <div class="fw-semibold">{{ $inspection->inspection_date?->format('Y-m-d') ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">物料</div>
+                    <div class="fw-semibold">{{ $inspection->item?->name ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">批次号</div>
+                    <div class="fw-semibold">{{ $inspection->batch_number ?? '-' }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">检验数量</div>
+                    <div class="fw-semibold">{{ $inspection->inspected_size }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">合格数量</div>
+                    <div class="fw-semibold text-success">{{ $inspection->qualified_size }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">不合格数量</div>
+                    <div class="fw-semibold text-danger">{{ $inspection->rejected_size }}</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">结果</div>
+                    <div><span class="badge {{ $resultBadge }}">{{ $result?->label() ?? '-' }}</span></div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="text-muted small">状态</div>
+                    <div class="fw-semibold">{{ $inspection->status ?? '-' }}</div>
+                </div>
+                <div class="col-12">
+                    <div class="text-muted small">备注</div>
+                    <div class="fw-semibold">{{ $inspection->remark ?? '-' }}</div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 @endsection

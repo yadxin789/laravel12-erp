@@ -1,52 +1,104 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>电子工厂ERP系统 - 登录</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('layouts.partials.head', ['title' => '登录 · ERP企业资源管理系统'])
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold text-gray-800">电子工厂ERP系统</h1>
-            <p class="text-gray-500 mt-2">登录您的账户</p>
+<body class="erp-auth-page">
+    <div class="erp-auth-card">
+        <div class="text-center mb-4">
+            <div class="erp-auth-logo"><i class="fa-solid fa-cubes"></i></div>
+            <h1 class="h4 fw-bold mb-1">ERP企业资源管理系统</h1>
+            <p class="text-muted small mb-0">登录您的账户</p>
         </div>
-        
+
         @if ($errors->any())
-            <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>{{ $errors->first() }}</span>
-                </div>
+            <div class="alert alert-danger d-flex align-items-start" role="alert">
+                <i class="fa-solid fa-circle-exclamation me-2 mt-1"></i>
+                <div>{{ $errors->first() }}</div>
             </div>
         @endif
 
         <form method="POST" action="{{ route('login') }}">
             @csrf
-            
+
+            <div class="mb-3">
+                <label class="form-label" for="email">用户名 / 邮箱</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                    <input type="text" id="email" name="email" value="{{ old('email') }}"
+                           class="form-control" placeholder="请输入用户名或邮箱" autofocus required>
+                </div>
+            </div>
+
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-medium mb-2">用户名 / 邮箱</label>
-                <input type="text" name="email" value="{{ old('email') }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入用户名或邮箱">
+                <label class="form-label" for="password">密码</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" id="password" name="password"
+                           class="form-control" placeholder="请输入密码" required>
+                </div>
             </div>
-            
-            <div class="mb-6">
-                <label class="block text-gray-700 text-sm font-medium mb-2">密码</label>
-                <input type="password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入密码">
-            </div>
-            
-            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                登录
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                <i class="fa-solid fa-right-to-bracket me-1"></i>登录
             </button>
         </form>
-        
-        <div class="mt-6 text-center">
-            <a href="{{ route('register') }}" class="text-blue-600 hover:text-blue-800 text-sm">
-                还没有账户？注册一个
+
+        @if (config('app.demo_mode'))
+            <div class="mt-3">
+                <button class="btn btn-link btn-sm p-0 text-decoration-none" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#demoAccounts" aria-expanded="false">
+                    <i class="fa-solid fa-users-viewfinder me-1"></i>演示账号（点击自动填充）
+                </button>
+                <div class="collapse mt-2" id="demoAccounts">
+                    <div class="border rounded-2 p-2">
+                        @foreach ([
+                            ['label' => '销售经理', 'email' => 'sales@demo.com'],
+                            ['label' => '采购经理', 'email' => 'purchase@demo.com'],
+                            ['label' => '生产经理', 'email' => 'production@demo.com'],
+                            ['label' => '仓储主管', 'email' => 'warehouse@demo.com'],
+                            ['label' => '质检主管', 'email' => 'quality@demo.com'],
+                            ['label' => '财务会计', 'email' => 'accounting@demo.com'],
+                            ['label' => '只读访客', 'email' => 'viewer@demo.com'],
+                            ['label' => '人事专员', 'email' => 'hr@demo.com'],
+                            ['label' => '项目经理', 'email' => 'project@demo.com'],
+                            ['label' => '资产管理员', 'email' => 'asset@demo.com'],
+                            ['label' => '电商运营', 'email' => 'ec@demo.com'],
+                            ['label' => '系统管理员', 'email' => 'admin@admin.com'],
+                        ] as $account)
+                            <button type="button"
+                                    class="btn btn-light btn-sm w-100 text-start mb-1 demo-account"
+                                    data-email="{{ $account['email'] }}">
+                                <span class="fw-semibold">{{ $account['label'] }}</span>
+                                <span class="text-muted ms-1 small">{{ $account['email'] }}</span>
+                            </button>
+                        @endforeach
+                        <div class="text-muted small mt-1">统一密码：<code>123456</code></div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <div class="text-center mt-4">
+            <a href="{{ route('home') }}" class="text-decoration-none small me-3">
+                <i class="fa-solid fa-house me-1"></i>返回首页
+            </a>
+            <a href="{{ route('register') }}" class="text-decoration-none small">
+                还没有账户？注册
             </a>
         </div>
     </div>
+
+    <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
+    @if (config('app.demo_mode'))
+        <script>
+            document.querySelectorAll('.demo-account').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    document.getElementById('email').value = btn.dataset.email;
+                    document.getElementById('password').value = '123456';
+                });
+            });
+        </script>
+    @endif
 </body>
 </html>

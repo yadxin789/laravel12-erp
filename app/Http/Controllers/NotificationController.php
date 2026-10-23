@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\System\Notification;
 use App\Services\NotificationService;
 
 class NotificationController extends Controller
@@ -27,7 +28,7 @@ class NotificationController extends Controller
      */
     public function read($id)
     {
-        $notification = \App\Models\System\Notification::where('user_id', auth()->id())->findOrFail($id);
+        $notification = Notification::where('user_id', auth()->id())->findOrFail($id);
         $notification->markAsRead();
 
         if ($notification->link) {
@@ -35,6 +36,28 @@ class NotificationController extends Controller
         }
 
         return redirect()->route('notifications.index')->with('success', '已标记为已读');
+    }
+
+    /**
+     * Mark a single notification as read without leaving the message center.
+     */
+    public function markRead($id)
+    {
+        $notification = Notification::where('user_id', auth()->id())->findOrFail($id);
+        $notification->markAsRead();
+
+        return back()->with('success', '已标记为已读');
+    }
+
+    /**
+     * Clear (delete) a single notification of the current user.
+     */
+    public function destroy($id)
+    {
+        $notification = Notification::where('user_id', auth()->id())->findOrFail($id);
+        $notification->delete();
+
+        return back()->with('success', '消息已清除');
     }
 
     /**

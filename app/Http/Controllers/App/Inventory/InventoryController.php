@@ -11,31 +11,52 @@ use Illuminate\Support\Facades\Gate;
 
 class InventoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         Gate::authorize('view inventory');
         $items = Item::all();
         $warehouses = Warehouse::all();
-        return view('app.inventory.index', compact('items', 'warehouses'));
-    }
 
-    public function search(Request $request)
-    {
-        Gate::authorize('view inventory');
-        $query = InventoryBalance::query();
-        
-        if ($request->has('item_id')) {
+        // 原 index 未查询余额数据，页面永远显示“暂无数据”；此处按筛选条件查询
+        $query = InventoryBalance::with(['item', 'warehouse']);
+
+        if ($request->filled('item_id')) {
             $query->where('item_id', $request->item_id);
         }
-        if ($request->has('warehouse_id')) {
+        if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', $request->warehouse_id);
         }
-        if ($request->has('batch_number')) {
-            $query->where('batch_number', $request->batch_number);
+        if ($request->filled('batch_number')) {
+            $query->where('batch_number', 'like', '%' . $request->batch_number . '%');
         }
 
-        $balances = $query->paginate(20);
-        return view('app.inventory.index', compact('balances'));
+        $balances = $query->orderBy('item_id')->paginate(20)->withQueryString();
+
+        return view('app.inventory.index', compact('items', 'warehouses', 'balances'));
+    }
+
+    public function transactions(Request $request)
+    {
+        Gate::authorize('view inventory');
+        $items = Item::all();
+        $warehouses = Warehouse::all();
+        $types = \App\Enums\InventoryTransactionType::options();
+
+        $query = \App\Models\Inventory\InventoryTransaction::with(['item', 'warehouse'])->latest();
+
+        if ($request->filled('item_id')) {
+            $query->where('item_id', $request->item_id);
+        }
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
+        if ($request->filled('transaction_type')) {
+            $query->where('transaction_type', $request->transaction_type);
+        }
+
+        $transactions = $query->paginate(20)->withQueryString();
+
+        return view('app.inventory.transactions', compact('items', 'warehouses', 'types', 'transactions'));
     }
 
     public function transfer()
@@ -208,7 +229,11 @@ class InventoryController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('app.inventory.trace', compact('transactions', 'batch_number'));
+        // 原代码 compact('batch_number') 引用了未定义变量，查询结果页会报错
+        return view('app.inventory.trace', [
+            'transactions' => $transactions,
+            'batch_number' => $validated['batch_number'],
+        ]);
     }
 
     protected function auditLog(string $action, string $module, ?int $recordId = null, ?string $remark = null): void

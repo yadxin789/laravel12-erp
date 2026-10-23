@@ -2,8 +2,10 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "dev": "php artisan serve",
+        "serve": "php artisan serve",
         "build": "vite build",
-        "dev": "vite"
+        "vite": "vite"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

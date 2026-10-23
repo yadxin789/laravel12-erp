@@ -46,7 +46,10 @@ class PurchaseRequisitionController extends Controller
             'lines.*.unit_price' => 'required|numeric|min:0',
         ]);
 
+        // req_no 为唯一且非空字段，需在此生成（原代码未赋值会导致创建失败）
+        $nextId = (int) (PurchaseRequisition::withTrashed()->max('id') ?? 0) + 1;
         $requisition = PurchaseRequisition::create([
+            'req_no' => 'PR' . date('Ymd') . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
             'requisition_date' => $validated['requisition_date'],
             'warehouse_id' => $validated['warehouse_id'],
             'status' => 'draft',

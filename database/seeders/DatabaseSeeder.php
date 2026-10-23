@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             DemoDataSeeder::class,
             ExtendedDemoDataSeeder::class,
+            DepartmentPositionSeeder::class,
+            HrExtDataSeeder::class,
         ]);
     }
 }

@@ -17,7 +17,9 @@ class ApprovalFlowController extends Controller
     public function index()
     {
         $flows = ApprovalFlow::with('steps')->get();
-        return view('admin.approval-flows.index', compact('flows'));
+        $roles = \Spatie\Permission\Models\Role::orderBy('name')->get(['id', 'name', 'display_name']);
+
+        return view('admin.approval-flows.index', compact('flows', 'roles'));
     }
 
     /**

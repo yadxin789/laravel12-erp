@@ -40,7 +40,10 @@ class ProductionReceiptController extends Controller
             'batch_number' => 'nullable|string',
         ]);
 
+        // receipt_no 为唯一且非空字段，需在此生成（原代码未赋值会导致创建失败）
+        $nextId = (int) (ProductionReceipt::withTrashed()->max('id') ?? 0) + 1;
         $receipt = ProductionReceipt::create([
+            'receipt_no' => 'PRC' . date('Ymd') . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
             'production_order_id' => $validated['production_order_id'],
             'receipt_date' => $validated['receipt_date'],
             'warehouse_id' => $validated['warehouse_id'],

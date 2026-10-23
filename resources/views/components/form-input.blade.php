@@ -1,11 +1,12 @@
-<div class="mb-4">
+<div class="mb-3">
     @if($label ?? false)
-    <label class="block text-gray-700 mb-2">{{ $label }}</label>
+        <label class="form-label" for="{{ $name }}">{{ $label }}</label>
     @endif
-    <input 
-        type="{{ $type ?? 'text' }}" 
-        name="{{ $name }}" 
-        class="w-full px-4 py-2 border rounded {{ $errors->has($name) ? 'border-red-500' : '' }}"
+    <input
+        type="{{ $type ?? 'text' }}"
+        id="{{ $name }}"
+        name="{{ $name }}"
+        class="form-control {{ $errors->has($name) ? 'is-invalid' : '' }}"
         value="{{ old($name, $value ?? '') }}"
         placeholder="{{ $placeholder ?? '' }}"
         {{ ($required ?? false) ? 'required' : '' }}
@@ -13,6 +14,6 @@
         {{ $attributes }}
     >
     @error($name)
-    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+        <div class="invalid-feedback d-block">{{ $message }}</div>
     @enderror
 </div>

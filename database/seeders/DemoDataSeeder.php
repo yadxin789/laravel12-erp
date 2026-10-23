@@ -112,6 +112,7 @@ class DemoDataSeeder extends Seeder
             'admin', 'sales_manager', 'purchase_manager',
             'production_manager', 'warehouse_manager', 'quality_manager',
             'accountant', 'viewer',
+            'hr_specialist', 'project_manager', 'asset_manager', 'ecommerce_operator',
         ];
         foreach ($roles as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
@@ -134,6 +135,10 @@ class DemoDataSeeder extends Seeder
             ['name' => '孙质检',       'email' => 'quality@demo.com',    'role' => 'quality_manager'],
             ['name' => '周财务',       'email' => 'accounting@demo.com', 'role' => 'accountant'],
             ['name' => '吴查看',       'email' => 'viewer@demo.com',     'role' => 'viewer'],
+            ['name' => '郑人事',       'email' => 'hr@demo.com',         'role' => 'hr_specialist'],
+            ['name' => '褚项目',       'email' => 'project@demo.com',    'role' => 'project_manager'],
+            ['name' => '卫资产',       'email' => 'asset@demo.com',      'role' => 'asset_manager'],
+            ['name' => '蒋电商',       'email' => 'ec@demo.com',         'role' => 'ecommerce_operator'],
         ];
 
         foreach ($demoUsers as $i => $u) {

@@ -148,16 +148,60 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'manage permissions',    'group' => 'system', 'display' => '管理权限'],
             ['name' => 'manage settings',       'group' => 'system', 'display' => '系统设置'],
             ['name' => 'view audit logs',       'group' => 'system', 'display' => '查看操作日志'],
+
+            // ==================== 人力资源 ====================
+            ['name' => 'view employees',        'group' => 'hr', 'display' => '查看员工档案'],
+            ['name' => 'create employees',      'group' => 'hr', 'display' => '创建员工档案'],
+            ['name' => 'edit employees',        'group' => 'hr', 'display' => '编辑员工档案'],
+            ['name' => 'delete employees',      'group' => 'hr', 'display' => '删除员工档案'],
+            ['name' => 'view attendance',       'group' => 'hr', 'display' => '查看考勤'],
+            ['name' => 'manage attendance',     'group' => 'hr', 'display' => '管理考勤'],
+            ['name' => 'view salaries',         'group' => 'hr', 'display' => '查看工资单'],
+            ['name' => 'manage salaries',       'group' => 'hr', 'display' => '管理工资单'],
+            ['name' => 'view performance reviews',   'group' => 'hr', 'display' => '查看绩效评估'],
+            ['name' => 'manage performance reviews', 'group' => 'hr', 'display' => '管理绩效评估'],
+            ['name' => 'view recruitments',     'group' => 'hr', 'display' => '查看招聘'],
+            ['name' => 'manage recruitments',   'group' => 'hr', 'display' => '管理招聘需求'],
+            ['name' => 'view applications',     'group' => 'hr', 'display' => '查看应聘者'],
+            ['name' => 'manage applications',   'group' => 'hr', 'display' => '管理应聘者'],
+
+            // ==================== 项目管理 ====================
+            ['name' => 'view projects',         'group' => 'projects', 'display' => '查看项目'],
+            ['name' => 'create projects',       'group' => 'projects', 'display' => '创建项目'],
+            ['name' => 'edit projects',         'group' => 'projects', 'display' => '编辑项目'],
+            ['name' => 'delete projects',       'group' => 'projects', 'display' => '删除项目'],
+            ['name' => 'manage project tasks',  'group' => 'projects', 'display' => '管理项目任务'],
+            ['name' => 'manage time entries',   'group' => 'projects', 'display' => '管理工时'],
+
+            // ==================== 固定资产 ====================
+            ['name' => 'view assets',           'group' => 'assets', 'display' => '查看资产'],
+            ['name' => 'create assets',         'group' => 'assets', 'display' => '登记资产'],
+            ['name' => 'edit assets',           'group' => 'assets', 'display' => '编辑资产'],
+            ['name' => 'delete assets',         'group' => 'assets', 'display' => '删除资产'],
+
+            // ==================== 电商订单 ====================
+            ['name' => 'view ecommerce orders',   'group' => 'ecommerce', 'display' => '查看电商订单'],
+            ['name' => 'create ecommerce orders', 'group' => 'ecommerce', 'display' => '创建电商订单'],
+            ['name' => 'edit ecommerce orders',   'group' => 'ecommerce', 'display' => '编辑电商订单'],
+            ['name' => 'sync ecommerce orders',   'group' => 'ecommerce', 'display' => '同步电商订单'],
         ];
 
-        // ------ 创建所有权限 ------
+        // ------ 创建所有权限（同时写入中文名与分组）------
         foreach ($permissions as $permission) {
-            Permission::firstOrCreate([
+            $perm = Permission::firstOrCreate([
                 'name' => $permission['name'],
                 'guard_name' => 'web',
             ], [
                 'name' => $permission['name'],
                 'guard_name' => 'web',
+                'group' => $permission['group'] ?? null,
+                'display' => $permission['display'] ?? null,
+            ]);
+
+            // 已存在的权限补齐中文名
+            $perm->update([
+                'group' => $permission['group'] ?? $perm->group,
+                'display' => $permission['display'] ?? $perm->display,
             ]);
         }
 
@@ -210,7 +254,7 @@ class RolePermissionSeeder extends Seeder
             'view production reports', 'create production reports', 'edit production reports', 'delete production reports',
             'view production receipts', 'create production receipts', 'edit production receipts', 'delete production receipts',
             // 需要查看的基础数据和技术数据
-            'view items', 'view boms', 'view routings', 'view warehouses',
+            'view items', 'view boms', 'view routings', 'view warehouses', 'view inventory', 'trace inventory',
             // 仪表盘
             'view dashboard',
         ]);
@@ -243,7 +287,7 @@ class RolePermissionSeeder extends Seeder
             'edit quality inspections', 'complete quality inspections',
             'view quality reports',
             // 需要查看的关联数据
-            'view items', 'view purchase orders', 'view production orders',
+            'view items', 'view purchase orders', 'view production orders', 'view inventory', 'trace inventory',
             // 仪表盘
             'view dashboard',
         ]);
@@ -266,5 +310,53 @@ class RolePermissionSeeder extends Seeder
         // ---------- viewer：全模块只读 ----------
         $viewerRole = Role::firstOrCreate(['name' => 'viewer', 'guard_name' => 'web']);
         $viewerRole->syncPermissions(Permission::where('name', 'like', 'view %')->get());
+
+        // ---------- hr_specialist：人事专员（员工档案 + 考勤）----------
+        $hrRole = Role::firstOrCreate(['name' => 'hr_specialist', 'guard_name' => 'web']);
+        $hrRole->syncPermissions([
+            'view employees', 'create employees', 'edit employees', 'delete employees',
+            'view attendance', 'manage attendance',
+            'view salaries', 'manage salaries',
+            'view performance reviews', 'manage performance reviews',
+            'view recruitments', 'manage recruitments',
+            'view applications', 'manage applications',
+            // 需要查看的基础数据与仪表盘
+            'view items', 'view dashboard',
+        ]);
+
+        // ---------- project_manager：项目经理（项目 + 任务 + 工时）----------
+        $pmRole = Role::firstOrCreate(['name' => 'project_manager', 'guard_name' => 'web']);
+        $pmRole->syncPermissions([
+            'view projects', 'create projects', 'edit projects', 'delete projects',
+            'manage project tasks', 'manage time entries',
+            // 需要查看的关联数据
+            'view customers', 'view items', 'view dashboard',
+        ]);
+
+        // ---------- asset_manager：资产管理员（资产台账 + 折旧）----------
+        $amRole = Role::firstOrCreate(['name' => 'asset_manager', 'guard_name' => 'web']);
+        $amRole->syncPermissions([
+            'view assets', 'create assets', 'edit assets', 'delete assets',
+            // 需要查看的关联数据
+            'view items', 'view warehouses', 'view dashboard',
+        ]);
+
+        // ---------- ecommerce_operator：电商运营（订单归集 + 同步）----------
+        $ecRole = Role::firstOrCreate(['name' => 'ecommerce_operator', 'guard_name' => 'web']);
+        $ecRole->syncPermissions([
+            'view ecommerce orders', 'create ecommerce orders', 'edit ecommerce orders', 'sync ecommerce orders',
+            // 需要查看的关联数据
+            'view items', 'view customers', 'view dashboard',
+        ]);
+
+        // ============================================================
+        // 角色 ↔ 岗位中文名（界面展示用，可在后台「角色管理」中修改）
+        // ============================================================
+        foreach (Role::whereNull('display_name')->orWhere('display_name', '')->get() as $role) {
+            $meta = \App\Support\RoleCatalog::CATALOG[$role->name] ?? null;
+            if ($meta) {
+                $role->update(['display_name' => $meta['label']]);
+            }
+        }
     }
 }

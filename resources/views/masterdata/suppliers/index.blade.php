@@ -3,51 +3,81 @@
 @section('title', '供应商管理')
 
 @section('content')
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold">供应商管理</h2>
-        <a href="{{ route('admin.suppliers.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">创建供应商</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <h2 class="page-title"><i class="fa-solid fa-truck-field"></i>供应商管理</h2>
+        <a href="{{ route('admin.suppliers.create') }}" class="btn btn-primary">
+            <i class="fa-solid fa-plus me-1"></i>创建供应商
+        </a>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="GET" class="flex flex-wrap gap-4 mb-6">
-            <input type="text" name="code" placeholder="供应商编码" value="{{ request('code') }}" class="border border-gray-300 rounded px-3 py-2">
-            <input type="text" name="name" placeholder="供应商名称" value="{{ request('name') }}" class="border border-gray-300 rounded px-3 py-2">
-            <button type="submit" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">搜索</button>
-        </form>
+    <div class="card">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end mb-4">
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="code">供应商编码</label>
+                    <input type="text" id="code" name="code" value="{{ request('code') }}" class="form-control" placeholder="供应商编码">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="name">供应商名称</label>
+                    <input type="text" id="name" name="name" value="{{ request('name') }}" class="form-control" placeholder="供应商名称">
+                </div>
+                <div class="col-12 col-md-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-magnifying-glass me-1"></i>搜索</button>
+                    <a href="{{ route('admin.suppliers.index') }}" class="btn btn-light">重置</a>
+                </div>
+            </form>
 
-        <table class="w-full">
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="px-4 py-2 text-left">编码</th>
-                    <th class="px-4 py-2 text-left">名称</th>
-                    <th class="px-4 py-2 text-left">联系人</th>
-                    <th class="px-4 py-2 text-left">电话</th>
-                    <th class="px-4 py-2 text-left">地址</th>
-                    <th class="px-4 py-2 text-center">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($suppliers as $supplier)
-                    <tr class="border-b">
-                        <td class="px-4 py-2">{{ $supplier->code }}</td>
-                        <td class="px-4 py-2">{{ $supplier->name }}</td>
-                        <td class="px-4 py-2">{{ $supplier->contact_person }}</td>
-                        <td class="px-4 py-2">{{ $supplier->phone }}</td>
-                        <td class="px-4 py-2">{{ $supplier->address }}</td>
-                        <td class="px-4 py-2 text-center">
-                            <a href="{{ route('admin.suppliers.show', $supplier) }}" class="text-blue-600 hover:underline">查看</a>
-                            <a href="{{ route('admin.suppliers.edit', $supplier) }}" class="text-green-600 hover:underline ml-4">编辑</a>
-                            <form action="{{ route('admin.suppliers.destroy', $supplier) }}" method="POST" class="inline ml-4">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:underline">删除</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>编码</th>
+                            <th>名称</th>
+                            <th>联系人</th>
+                            <th>电话</th>
+                            <th>地址</th>
+                            <th class="text-end" style="width: 200px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($suppliers as $supplier)
+                            <tr>
+                                <td class="font-monospace small">{{ $supplier->code }}</td>
+                                <td>{{ $supplier->name }}</td>
+                                <td>{{ $supplier->contact_person }}</td>
+                                <td>{{ $supplier->phone }}</td>
+                                <td>{{ $supplier->address }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('admin.suppliers.show', $supplier) }}" class="btn btn-outline-primary">
+                                            <i class="fa-regular fa-eye"></i>查看
+                                        </a>
+                                        <a href="{{ route('admin.suppliers.edit', $supplier) }}" class="btn btn-outline-secondary">
+                                            <i class="fa-regular fa-pen-to-square"></i>编辑
+                                        </a>
+                                        <form action="{{ route('admin.suppliers.destroy', $supplier) }}" method="POST" class="d-inline"
+                                              onsubmit="return confirm('确定删除供应商【{{ $supplier->name }}】吗？')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger">
+                                                <i class="fa-regular fa-trash-can"></i>删除
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="erp-empty">暂无供应商数据</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
 
-        {{ $suppliers->links() }}
+            <div class="d-flex justify-content-end">
+                {{ $suppliers->links() }}
+            </div>
+        </div>
     </div>
 @endsection

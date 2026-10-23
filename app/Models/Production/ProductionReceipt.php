@@ -12,7 +12,12 @@ class ProductionReceipt extends Model
 
     protected $fillable = [
         'receipt_no', 'production_order_id', 'receipt_date', 'warehouse_id',
+        'quantity', 'batch_number',
         'status', 'remark', 'created_by', 'approved_by', 'approved_at',
+    ];
+
+    protected $casts = [
+        'quantity' => 'decimal:4',
     ];
 
     public function productionOrder()

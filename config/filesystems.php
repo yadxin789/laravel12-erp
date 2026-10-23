@@ -47,6 +47,24 @@ return [
             'report' => false,
         ],
 
+        // AI 聊天附件（私有，经控制器下载/预览）
+        'ai_chat' => [
+            'driver' => 'local',
+            'root' => storage_path('app/ai-chat'),
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // 聊天附件（群聊/私聊，公开访问）
+        'chat' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/chat-files'),
+            'url' => env('APP_URL').'/storage/chat-files',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

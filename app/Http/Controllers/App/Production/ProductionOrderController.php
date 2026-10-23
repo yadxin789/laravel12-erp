@@ -126,9 +126,12 @@ class ProductionOrderController extends Controller
             'quantity' => 'required|integer|min:1',
         ]);
 
-        $order->reports()->create([
-            'operation_id' => $validated['operation_id'],
-            'reported_quantity' => $validated['quantity'],
+        // 关联为 productionReports()，表字段为 quantity（原代码会 500）
+        $nextId = (int) (\App\Models\Production\ProductionReport::max('id') ?? 0) + 1;
+        $order->productionReports()->create([
+            'report_no' => 'RPT' . date('Ymd') . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT),
+            'operation_id' => is_numeric($validated['operation_id']) ? $validated['operation_id'] : null,
+            'quantity' => $validated['quantity'],
             'report_date' => now(),
         ]);
 
