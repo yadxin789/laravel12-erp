@@ -1,0 +1,14 @@
+[Unit]
+Description=Dedao ERP (Laravel in containers)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/erp/start.sh
+ExecStop=/usr/bin/docker stop erp-web erp-app erp-db
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

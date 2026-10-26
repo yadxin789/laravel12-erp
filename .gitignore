@@ -23,3 +23,11 @@ yarn-error.log
 /.zed
 /.agnes
 /.playwright-cli
+
+# 部署密钥：真实口令文件一律不入库，只提交 .example 模板
+/deploy/docker/env.production
+/deploy/docker/secrets*
+/secrets*
+*.pem
+*.crt
+# 注：*.key 已被 /storage/*.key 与 .env 相关规则覆盖，此处不再通配，避免误伤业务文件
