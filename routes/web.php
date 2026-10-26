@@ -314,10 +314,32 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
-    // 系统监控：健康检查 / 告警 / 备份台账 / 调度清单
+    // 系统监控：健康检查 / 告警 / 备份台账
     Route::get('system-health', [\App\Http\Controllers\Admin\SystemHealthController::class, 'index'])->name('system-health');
     Route::post('system-health/run', [\App\Http\Controllers\Admin\SystemHealthController::class, 'run'])->name('system-health.run');
     Route::post('system-health/alerts/{alert}/resolve', [\App\Http\Controllers\Admin\SystemHealthController::class, 'resolveAlert'])->name('system-health.alerts.resolve');
+
+    // 运维监控：系统工作状态 / 定时任务 / 队列 / 自启动程序
+    Route::prefix('monitor')->name('monitor.')->group(function () {
+        $status = \App\Http\Controllers\Admin\SystemStatusController::class;
+        Route::get('system-status', [$status, 'index'])->name('system-status');
+        Route::post('system-status/run-health', [$status, 'runHealth'])->name('system-status.run-health');
+        Route::post('system-status/clear-cache', [$status, 'clearCache'])->name('system-status.clear-cache');
+
+        $tasks = \App\Http\Controllers\Admin\ScheduledTaskController::class;
+        Route::get('scheduled-tasks', [$tasks, 'index'])->name('scheduled-tasks');
+        Route::post('scheduled-tasks/run', [$tasks, 'run'])->name('scheduled-tasks.run');
+
+        $queue = \App\Http\Controllers\Admin\QueueMonitorController::class;
+        Route::get('queue', [$queue, 'index'])->name('queue');
+        Route::post('queue/failures/retry-all', [$queue, 'retryAll'])->name('queue.retry-all');
+        Route::post('queue/failures/flush', [$queue, 'flush'])->name('queue.flush');
+        Route::post('queue/failures/{id}/retry', [$queue, 'retry'])->name('queue.retry');
+        Route::post('queue/failures/{id}/forget', [$queue, 'forget'])->name('queue.forget');
+        Route::post('queue/restart', [$queue, 'restart'])->name('queue.restart');
+
+        Route::get('auto-start', [\App\Http\Controllers\Admin\AutoStartController::class, 'index'])->name('auto-start');
+    });
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->except(['show']);
     Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->except(['show']);

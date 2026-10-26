@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Listeners\BusinessEventListener;
 use App\Services\AlertService;
+use App\Support\ScheduleRunRecorder;
+use Illuminate\Console\Events\ScheduledTaskFailed;
+use Illuminate\Console\Events\ScheduledTaskFinished;
+use Illuminate\Console\Events\ScheduledTaskSkipped;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Event;
@@ -36,6 +40,52 @@ class AppServiceProvider extends ServiceProvider
         Event::subscribe(BusinessEventListener::class);
 
         $this->registerFailureAlerts();
+        $this->registerScheduleLedger();
+    }
+
+    /**
+     * 定时任务执行台账
+     *
+     * 管理员后台「定时任务」页要展示每个任务的「上次执行时间/耗时/成功与否」，
+     * 而 Laravel 的调度原生不落任何痕迹，这里在调度事件里补上。
+     * 写缓存失败绝不能影响任务本身。
+     */
+    protected function registerScheduleLedger(): void
+    {
+        Event::listen(ScheduledTaskFinished::class, function (ScheduledTaskFinished $event) {
+            try {
+                app(ScheduleRunRecorder::class)->record($event->task, [
+                    'status' => $event->task->exitCode === 0 ? 'success' : 'failed',
+                    'duration_ms' => (int) round($event->runtime * 1000),
+                    'exit_code' => $event->task->exitCode,
+                ]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
+        Event::listen(ScheduledTaskFailed::class, function (ScheduledTaskFailed $event) {
+            try {
+                app(ScheduleRunRecorder::class)->record($event->task, [
+                    'status' => 'failed',
+                    'exception' => mb_substr($event->exception->getMessage(), 0, 500),
+                ]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+
+        // 被重叠保护跳过时也留痕，否则管理员会误以为「任务压根没被调度」
+        Event::listen(ScheduledTaskSkipped::class, function (ScheduledTaskSkipped $event) {
+            try {
+                app(ScheduleRunRecorder::class)->record($event->task, [
+                    'status' => 'skipped',
+                    'exception' => '上一次执行尚未结束，本次被 withoutOverlapping 跳过',
+                ]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
     }
 
     /**

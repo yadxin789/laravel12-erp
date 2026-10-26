@@ -3,6 +3,8 @@
 @section('title', '系统监控')
 
 @section('content')
+    @include('admin.monitor._tabs', ['active' => 'admin.system-health'])
+
     @php
         $healthy = $health['healthy'] ?? null;
         $statusBadge = $healthy === true ? 'success' : ($healthy === false ? 'danger' : 'secondary');
@@ -231,7 +233,12 @@
 
     {{-- 调度清单 --}}
     <div class="card">
-        <div class="card-header"><i class="fa-regular fa-clock me-2"></i>定时任务清单</div>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="fa-regular fa-clock me-2"></i>定时任务清单</span>
+            <a href="{{ route('admin.monitor.scheduled-tasks') }}" class="btn btn-sm btn-outline-primary">
+                <i class="fa-solid fa-arrow-right me-1"></i>查看执行台账与调度器状态
+            </a>
+        </div>
         <div class="card-body">
             <pre class="bg-light border rounded p-3 mb-0" style="max-height:22rem;overflow:auto;">{{ $schedule }}</pre>
             <div class="text-muted small mt-2">

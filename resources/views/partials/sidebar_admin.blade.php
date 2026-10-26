@@ -69,6 +69,33 @@
 </a>
 @endif
 
+<div class="{{ $section }}">运维监控</div>
+@if(\App\Support\Menu::can('admin.monitor.system-status'))
+<a href="{{ route('admin.monitor.system-status') }}" class="{{ $item(request()->routeIs('admin.monitor.system-status*')) }}">
+    <i class="fa-solid fa-heart-pulse"></i>系统工作状态
+</a>
+@endif
+@if(\App\Support\Menu::can('admin.monitor.scheduled-tasks'))
+<a href="{{ route('admin.monitor.scheduled-tasks') }}" class="{{ $item(request()->routeIs('admin.monitor.scheduled-tasks*')) }}">
+    <i class="fa-regular fa-clock"></i>定时任务
+</a>
+@endif
+@if(\App\Support\Menu::can('admin.monitor.queue'))
+<a href="{{ route('admin.monitor.queue') }}" class="{{ $item(request()->routeIs('admin.monitor.queue*')) }}">
+    <i class="fa-solid fa-layer-group"></i>队列监控
+</a>
+@endif
+@if(\App\Support\Menu::can('admin.monitor.auto-start'))
+<a href="{{ route('admin.monitor.auto-start') }}" class="{{ $item(request()->routeIs('admin.monitor.auto-start*')) }}">
+    <i class="fa-solid fa-rocket"></i>自启动程序
+</a>
+@endif
+@if(\App\Support\Menu::can('admin.system-health'))
+<a href="{{ route('admin.system-health') }}" class="{{ $item(request()->routeIs('admin.system-health')) }}">
+    <i class="fa-solid fa-bell"></i>告警与备份
+</a>
+@endif
+
 <div class="{{ $section }}">系统设置</div>
 @if(\App\Support\Menu::can('admin.settings.index'))
 <a href="{{ route('admin.settings.index') }}" class="{{ $item(request()->routeIs('admin.settings.*')) }}">
