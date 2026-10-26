@@ -411,6 +411,203 @@ php artisan test --filter=SmokeTest
 5. CORS 白名单 + Sanctum 域白名单
 6. 定期备份数据库与 `storage/app/`
 
+## 自动化运维
+
+这一章补齐了「定时任务 / 队列守护 / 状态监控 / 备份 / 告警 / 自启动」六项运维能力，
+目标是让系统在没有人工干预的情况下也能自愈、自报、可回溯。
+
+### 1. 能力总览
+
+| 能力 | 实现 | 入口 |
+|------|------|------|
+| 任务调度 | Laravel Scheduler（`routes/console.php`） | `php artisan schedule:list` |
+| 队列消费 | `queue:work` + supervisor/systemd/NSSM | `deploy/supervisor/`、`deploy/systemd/`、`deploy/windows/` |
+| 状态监控 | `erp:health`（系统面 + 业务面） | `php artisan erp:health` |
+| 监控面板 | 后台 → 系统监控 | `/admin/system-health` |
+| 数据库备份 | `db:backup`（mysqldump/pg_dump/sqlite + gzip） | `php artisan db:backup` |
+| 备份恢复 | `db:restore` | `php artisan db:restore <file>` |
+| 告警通知 | `AlertService`（站内 / 邮件 / 群机器人，带冷却与恢复） | `config/monitoring.php` |
+| 数据轮转 | `erp:prune` | `php artisan erp:prune` |
+| 状态自动转换 | `erp:state-transition`（5 秒一次） | `php artisan erp:state-transition --dry-run` |
+| 一键安装 | `scripts/install.sh`、`scripts/install.ps1` | — |
+| 一键发布 | `scripts/deploy.sh`、`scripts/deploy.ps1` | — |
+| 外部拨测 | `scripts/health-check.sh`（退出码 0/1/2/3） | — |
+
+### 2. 一键安装
+
+```bash
+# Linux / macOS
+./scripts/install.sh                 # 完整安装（依赖、迁移、种子、守护进程）
+./scripts/install.sh --no-seed       # 生产环境：不导入演示数据
+./scripts/install.sh --no-daemon     # 只装应用，不配置守护进程
+```
+
+```powershell
+# Windows（管理员 PowerShell）
+.\scripts\install.ps1
+.\scripts\install.ps1 -NoSeed
+```
+
+安装脚本会自动完成：环境校验 → 依赖安装 → `.env` 生成 → 目录权限 → 迁移 → `storage:link`
+→ 生产缓存 → 守护进程注册 → 首次健康检查。
+
+### 3. 自启动与进程守护
+
+**Linux（推荐 supervisor）**
+
+```bash
+sudo cp deploy/supervisor/*.conf /etc/supervisor/conf.d/
+sudo sed -i 's#/var/www/laravel12-erp#/实际项目路径#g' /etc/supervisor/conf.d/erp-*.conf
+sudo supervisorctl reread && sudo supervisorctl update
+sudo supervisorctl status
+```
+
+- `erp-worker`：`numprocs=2` 双进程消费，`autorestart=true` 崩溃自愈
+- `erp-scheduler`：`schedule:work` 常驻，等价于每分钟执行 `schedule:run`
+
+**Linux（systemd 替代方案）**
+
+```bash
+sudo cp deploy/systemd/*.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now erp-queue erp-scheduler
+```
+
+**Linux（仅 cron 方案）**
+
+```bash
+sudo cp deploy/cron/laravel-erp /etc/cron.d/laravel-erp
+sudo chmod 644 /etc/cron.d/laravel-erp
+```
+
+> cron 只解决调度，队列 Worker 仍需 supervisor/systemd 常驻。
+>
+> `erp:state-transition` 是亚分钟任务（`everyFiveSeconds`）：cron / 计划任务仍然只需每分钟拉起
+> 一次 `schedule:run`，Laravel 会在该分钟的剩余时间内持续轮询到期的任务，因此**不需要**把
+> 系统级 cron 改成每 5 秒。前提是不能使用 `array` 缓存驱动（`withoutOverlapping()` 依赖缓存锁）。
+
+**Windows**
+
+```powershell
+# 注册计划任务：ERP-Scheduler（每分钟 schedule:run）+ ERP-Queue（NSSM 服务，无 NSSM 时回退开机启动）
+.\deploy\windows\install-tasks.ps1 -ProjectRoot "D:\laravel12-erp" -PhpPath "D:\php\php.exe"
+```
+
+生产环境建议安装 NSSM（`choco install nssm`），把队列封装为真正的 Windows 服务，
+获得崩溃自愈能力；计划任务方案只能保证开机拉起。
+
+**Worker 参数为什么这样写**
+
+```
+queue:work database --sleep=3 --tries=3 --max-time=3600 --max-jobs=1000 --memory=256
+```
+
+`--max-time` / `--max-jobs` 让进程定期自行退出并由 supervisor 拉起，既释放长驻内存，
+也保证发布新代码后 Worker 不会一直跑旧逻辑（配合 `php artisan queue:restart`）。
+
+### 4. 定时任务清单
+
+| 频率 | 命令 | 作用 |
+|------|------|------|
+| 每分钟 | `erp:health` | 健康检查 + 调度心跳 + 告警 |
+| 每天 02:00 | `db:backup` | 数据库全量备份 |
+| 每天 03:10 | `erp:prune` | 会话/通知/失败任务/审计日志轮转 |
+| 每天 08:00 | `erp:low-stock-alert` | 低库存汇总预警 |
+| 每小时 | `erp:logistics-track` | 在途运单轨迹轮询，状态变化自动通知 |
+| 每 30 分钟 | `erp:ecommerce-sync` | 电商订单同步（Job 自带平台级互斥） |
+| 每天 | `queue:prune-batches` / `queue:prune-failed` / `auth:clear-resets` | 框架收尾清理 |
+
+调度输出统一落盘便于排错：
+
+- `storage/logs/health.log`
+- `storage/logs/scheduler.log`
+- `storage/logs/worker.log`
+
+### 5. 状态监控
+
+```bash
+php artisan erp:health              # 人读表格
+php artisan erp:health --json       # 机读，供 Zabbix / Prometheus textfile 采集
+php artisan erp:health --no-alert   # 只检查不告警（维护窗口）
+./scripts/health-check.sh https://erp.example.com
+```
+
+检查项分两类：
+
+- **系统面**：数据库连通性/连接数、队列积压、队列最长等待、失败任务、磁盘可用空间、备份新鲜度、调度心跳
+- **业务面**：负库存、待审批积压、逾期未收回应收、延期生产工单
+
+后台 **系统监控**（`/admin/system-health`）展示同一份结果，并可直接「确认恢复」告警。
+
+`health-check.sh` 退出码：`0` 健康 / `1` 有警告 / `2` 有异常 / `3` 站点不可达。
+
+### 6. 告警与通知
+
+配置文件 `config/monitoring.php`，全部可用环境变量覆盖。
+
+告警语义对齐 Prometheus Alertmanager：
+
+- `fire()` 触发并累加，同一 `fingerprint` 在冷却期内不重复发送（`ERP_ALERT_COOLDOWN`，默认 30 分钟）
+- 持续触发达到 `ERP_ALERT_ESCALATION_AFTER`（默认 10 次）会强制升级再发一次
+- 指标恢复正常后自动发送「已恢复」通知（含持续时长）
+
+三条通道：
+
+```env
+ERP_ALERT_CHANNEL_DATABASE=true    # 站内消息（通知中心），按角色广播
+ERP_ALERT_CHANNEL_MAIL=true        # 邮件
+ERP_ALERT_MAIL_TO=ops@example.com
+ERP_ALERT_CHANNEL_WEBHOOK=true     # 群机器人
+ERP_ALERT_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx
+ERP_ALERT_WEBHOOK_DRIVER=wecom     # wecom / dingtalk / feishu
+```
+
+除轮询式告警外，以下两类事件是**即时**告警：
+
+- 队列任务失败（`JobFailed` 事件）
+- 应用未捕获异常（5xx 类，已排除 404/422/权限/限流等业务性异常）
+
+告警记录存 `system_alerts` 表，可在监控面板确认恢复；`ERP_MONITOR_ENABLED=false` 可全局静默。
+
+### 7. 备份与恢复
+
+```bash
+php artisan db:backup            # 立即备份（默认库）
+php artisan db:backup --list     # 查看备份台账（含大小/耗时/状态）
+php artisan db:restore storage/app/backups/xxx.sql.gz
+./scripts/backup.sh --sync /mnt/nas   # 备份并同步到异地
+```
+
+- 备份文件：`storage/app/backups/`，gzip 压缩，默认保留 14 天（`ERP_BACKUP_RETENTION_DAYS`）
+- 每次备份写入 `database_backups` 台账，**备份是否成功本身被监控**：超过 26 小时没有成功备份即告警
+- 找不到 `mysqldump` 时用 `ERP_MYSQLDUMP_PATH` 指定完整路径
+
+> 备份的价值取决于能否恢复。建议每季度做一次恢复演练：
+> `php artisan down` → `db:restore` → 抽查数据 → `php artisan up`。
+
+### 8. 发布流程
+
+```bash
+./scripts/deploy.sh main       # Linux
+.\scripts\deploy.ps1 -Branch main   # Windows
+```
+
+流程：维护模式 → 拉代码 → 依赖安装 → **迁移前备份** → 迁移 → 重建缓存 → `queue:restart` → 退出维护模式 → 健康检查。
+
+> 发布后不执行 `queue:restart`，Worker 会继续跑旧代码，这是最常见的上线事故。
+
+### 9. 新增排查项
+
+| 现象 | 排查 |
+|------|------|
+| 定时任务没执行 | `php artisan schedule:list` 有清单不代表在跑；看监控面板「调度心跳」是否超过 10 分钟 |
+| 心跳正常但任务没跑 | 看 `storage/logs/scheduler.log`；`withoutOverlapping` 依赖缓存锁，确认 `CACHE_STORE` 不是 `array` |
+| 队列不消费 | `supervisorctl status` / `systemctl status erp-queue`；Windows 看 NSSM 服务状态 |
+| 任务被重复执行 | `DB_QUEUE_RETRY_AFTER` 必须 ≥ 所有 Job 的 `$timeout` |
+| 备份失败 | 多为找不到 `mysqldump`，配置 `ERP_MYSQLDUMP_PATH` |
+| 告警刷屏 | 调大 `ERP_ALERT_COOLDOWN`；确认 fingerprint 是否稳定（不要用随机值） |
+| 队列任务卡住 | `php artisan queue:flush` + 重启 Worker（supervisor 会自动拉起） |
+
 ## 维护
 
 ```bash
