@@ -1,0 +1,16 @@
+[Unit]
+Description=ERP Scheduler (schedule:work)
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/laravel12-erp
+ExecStart=/usr/bin/php /var/www/laravel12-erp/artisan schedule:work
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/laravel12-erp/storage/logs/scheduler.log
+StandardError=append:/var/www/laravel12-erp/storage/logs/scheduler.log
+
+[Install]
+WantedBy=multi-user.target

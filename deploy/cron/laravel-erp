@@ -1,0 +1,9 @@
+# ERP 定时任务（cron 方案，与 supervisor 的 schedule:work 二选一）
+#
+# 安装：
+#   sudo cp deploy/cron/laravel-erp /etc/cron.d/laravel-erp
+#   sudo chmod 644 /etc/cron.d/laravel-erp
+#
+# 注意：cron.d 中的文件必须包含 user 字段，且文件末尾必须有换行。
+
+* * * * * www-data php /var/www/laravel12-erp/artisan schedule:run >> /var/www/laravel12-erp/storage/logs/cron.log 2>&1

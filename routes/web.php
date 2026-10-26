@@ -138,6 +138,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('app/ai/invoice-ocr', [\App\Http\Controllers\App\InvoiceOcrController::class, 'index'])->name('app.ai.invoice-ocr');
     Route::post('app/ai/invoice-ocr', [\App\Http\Controllers\App\InvoiceOcrController::class, 'recognize'])->name('app.ai.invoice-ocr.recognize');
 
+    // 异步识别（走队列）：提交后返回任务 ID，前端轮询结果
+    Route::post('app/ai/ocr', [\App\Http\Controllers\App\InvoiceOcrController::class, 'store'])->name('app.ai.ocr.store');
+    Route::get('app/ai/ocr/{ocr}', [\App\Http\Controllers\App\InvoiceOcrController::class, 'show'])->name('app.ai.ocr.show');
+
     // 财务管理
     Route::get('app/finance/invoices', [\App\Http\Controllers\App\FinanceController::class, 'invoices'])->name('app.finance.invoices');
     Route::get('app/finance/invoices/create', [\App\Http\Controllers\App\FinanceController::class, 'createInvoice'])->name('app.finance.invoices.create');
@@ -309,6 +313,11 @@ Route::middleware(['auth'])->group(function () {
 // ============================================================
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+
+    // 系统监控：健康检查 / 告警 / 备份台账 / 调度清单
+    Route::get('system-health', [\App\Http\Controllers\Admin\SystemHealthController::class, 'index'])->name('system-health');
+    Route::post('system-health/run', [\App\Http\Controllers\Admin\SystemHealthController::class, 'run'])->name('system-health.run');
+    Route::post('system-health/alerts/{alert}/resolve', [\App\Http\Controllers\Admin\SystemHealthController::class, 'resolveAlert'])->name('system-health.alerts.resolve');
 
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->except(['show']);
     Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class)->except(['show']);

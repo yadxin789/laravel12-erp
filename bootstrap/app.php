@@ -25,5 +25,27 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // 应用层未捕获异常即时告警（404 / 422 / 表单校验等业务性异常不告警，避免噪音）
+        $exceptions->reportable(function (\Throwable $e) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException
+                || $e instanceof \Illuminate\Validation\ValidationException
+                || $e instanceof \Illuminate\Auth\Access\AuthorizationException
+                || $e instanceof \Illuminate\Auth\AuthenticationException
+                || $e instanceof \Illuminate\Http\Exceptions\ThrottleRequestsException) {
+                return;
+            }
+
+            try {
+                app(\App\Services\AlertService::class)->fire(
+                    'exception',
+                    'app.exception:' . md5(get_class($e) . '|' . mb_substr($e->getMessage(), 0, 120)),
+                    'critical',
+                    '应用异常：' . class_basename($e),
+                    mb_substr($e->getMessage(), 0, 800) ?: '无异常信息',
+                    ['file' => $e->getFile(), 'line' => $e->getLine()]
+                );
+            } catch (\Throwable $ignored) {
+                // 告警通道自身不可用时静默降级，不能影响异常处理流程
+            }
+        });
     })->create();

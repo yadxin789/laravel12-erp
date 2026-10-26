@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessInvoiceOcrJob;
+use App\Models\System\AiSetting;
+use App\Models\System\AiOcrResult;
 use App\Services\AiService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,6 +19,66 @@ class InvoiceOcrController extends Controller
     public function index()
     {
         return view('app.ai.invoice-ocr');
+    }
+
+    /**
+     * 异步识别入口：入队后立即返回，前端凭 ID 轮询结果
+     *
+     * 识别一次可能耗时数十秒，走队列可避免 PHP-FPM 请求被长时间占用。
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $request->validate([
+            'invoice_image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
+        ]);
+
+        $setting = AiSetting::current();
+        if (! $setting->enabled || ! $setting->vision_enabled) {
+            return response()->json([
+                'message' => 'AI 视觉功能未启用，请先在后台 AI 设置中开启视觉/OCR。',
+            ], 422);
+        }
+
+        $file = $request->file('invoice_image');
+        $path = $file->store('invoices', 'public');
+
+        $ocr = AiOcrResult::create([
+            'user_id' => $request->user()?->id,
+            'disk' => 'public',
+            'path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'status' => AiOcrResult::STATUS_PENDING,
+        ]);
+
+        ProcessInvoiceOcrJob::dispatch($ocr);
+
+        return response()->json([
+            'id' => $ocr->id,
+            'status' => $ocr->status,
+            'status_url' => route('app.ai.ocr.show', $ocr->id),
+        ], 202);
+    }
+
+    /**
+     * 查询异步识别结果
+     */
+    public function show(Request $request, AiOcrResult $ocr): JsonResponse
+    {
+        if ($ocr->user_id && (int) $ocr->user_id !== (int) $request->user()?->id
+            && ! $request->user()?->hasRole('admin')) {
+            abort(403);
+        }
+
+        return response()->json([
+            'id' => $ocr->id,
+            'status' => $ocr->status,
+            'status_label' => $ocr->statusLabel(),
+            'result' => $ocr->result,
+            'error_message' => $ocr->error_message,
+            'original_name' => $ocr->original_name,
+            // 图片存于 public 盘，经 storage:link 对外可访问
+            'image_url' => $ocr->path ? asset('storage/' . ltrim($ocr->path, '/')) : null,
+        ]);
     }
 
     /**

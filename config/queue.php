@@ -39,8 +39,12 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
-            'after_commit' => false,
+            // 必须 >= 所有 Job 中最大的 $timeout，否则任务尚未执行完就被判定为
+            // 「超时可回收」，会被第二个 worker 重复捞起执行（本项目最长 Job 为 120s）。
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 180),
+            // 订单/库存等业务常在 DB 事务中派发任务，提交后再入队可避免
+            // job 读到未提交数据或 job 比事务先落库导致的脏读
+            'after_commit' => true,
         ],
 
         'beanstalkd' => [

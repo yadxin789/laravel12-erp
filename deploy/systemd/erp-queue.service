@@ -1,0 +1,18 @@
+[Unit]
+Description=ERP Queue Worker
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/laravel12-erp
+# --max-time 配合 Restart=always 实现周期性重启，防止内存泄漏与旧代码常驻
+ExecStart=/usr/bin/php /var/www/laravel12-erp/artisan queue:work database --sleep=3 --tries=3 --max-time=3600 --max-jobs=1000 --memory=256
+Restart=always
+RestartSec=5
+TimeoutStopSec=3600
+StandardOutput=append:/var/www/laravel12-erp/storage/logs/worker.log
+StandardError=append:/var/www/laravel12-erp/storage/logs/worker.log
+
+[Install]
+WantedBy=multi-user.target

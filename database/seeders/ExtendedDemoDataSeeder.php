@@ -796,11 +796,16 @@ class ExtendedDemoDataSeeder extends Seeder
         $statuses = ['present', 'late', 'absent', 'leave', 'present'];
         foreach ($employees as $i => $employee) {
             foreach (range(1, 5) as $day) {
+                // check_in / check_out 是 timestamp 列，必须写入完整日期时间
+                // （只写 "08:00:00" 会被 MySQL 解析成 2008-00-00，严格模式下直接报错）
+                $absent = $statuses[$i % count($statuses)] === 'absent';
+                $dayStart = now()->subDays($day)->startOfDay();
+
                 Attendance::forceCreate([
                     'employee_id' => $employee->id,
-                    'date' => now()->subDays($day)->toDateString(),
-                    'check_in' => $statuses[$i % count($statuses)] === 'absent' ? null : sprintf('%02d:%02d:00', 8 + ($i % 2), $i * 3 % 60),
-                    'check_out' => $statuses[$i % count($statuses)] === 'absent' ? null : sprintf('%02d:%02d:00', 17 + ($i % 2), $i * 5 % 60),
+                    'date' => $dayStart->toDateString(),
+                    'check_in' => $absent ? null : $dayStart->copy()->setTime(8 + ($i % 2), ($i * 3) % 60)->toDateTimeString(),
+                    'check_out' => $absent ? null : $dayStart->copy()->setTime(17 + ($i % 2), ($i * 5) % 60)->toDateTimeString(),
                     'status' => $statuses[($i + $day) % count($statuses)],
                     'remark' => $day === 1 ? '演示数据' : null,
                 ]);
