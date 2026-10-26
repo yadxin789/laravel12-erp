@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App\Sales;
 
 use App\Enums\QuotationStatus;
+use App\Enums\SalesOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Sales\Quotation;
 use App\Models\MasterData\Customer;
@@ -81,7 +82,12 @@ class QuotationController extends Controller
     public function submit(Quotation $quotation)
     {
         Gate::authorize('edit sales quotations');
-        $quotation->update(['status' => 'submitted']);
+
+        if (! $quotation->canSubmit()) {
+            return back()->with('error', '报价单状态不允许提交');
+        }
+
+        $quotation->update(['status' => QuotationStatus::Submitted]);
         $this->auditLog('submit', 'Quotation', $quotation);
 
         $this->notificationService->sendToPermission(
@@ -98,11 +104,16 @@ class QuotationController extends Controller
     public function convert(Request $request, Quotation $quotation)
     {
         Gate::authorize('edit sales quotations');
+
+        if (! $quotation->canConvert()) {
+            return back()->with('error', '报价单状态不允许生成销售订单');
+        }
+
         $order = \App\Models\Sales\SalesOrder::create([
             'customer_id' => $quotation->customer_id,
             'order_date' => now()->format('Y-m-d'),
             'delivery_date' => $quotation->valid_until,
-            'status' => 'draft',
+            'status' => SalesOrderStatus::Draft,
         ]);
 
         foreach ($quotation->lines as $line) {
@@ -114,7 +125,7 @@ class QuotationController extends Controller
             ]);
         }
 
-        $quotation->update(['status' => 'converted']);
+        $quotation->update(['status' => QuotationStatus::Converted]);
         $this->auditLog('convert', 'Quotation', $quotation);
 
         return redirect()->route('app.sales.orders.show', $order)->with('success', '已从报价单生成销售订单');

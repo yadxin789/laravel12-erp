@@ -19,6 +19,7 @@ use App\Models\Purchasing\PurchaseOrder;
 use App\Models\Purchasing\PurchaseOrderLine;
 use App\Models\Production\ProductionOrder;
 use App\Models\Production\BomHeader;
+use App\Enums\QualityInspectionStatus;
 use App\Models\Production\BomLine;
 use App\Models\Production\RoutingHeader;
 use App\Models\Production\RoutingOperation;
@@ -808,17 +809,17 @@ class DemoDataSeeder extends Seeder
 
         $qiData = [
             // 1. IQC 来料检验 - pass
-            ['no'=>"QI-{$year}-002001", 'type'=>'iqc', 'item'=>'M-001', 'batch'=>'B20260701', 'date'=>'2026-07-02', 'sample'=>50, 'insp'=>50, 'qual'=>49, 'rej'=>1, 'result'=>'pass', 'status'=>'completed', 'created_by'=>$qualityId],
+            ['no'=>"QI-{$year}-002001", 'type'=>'iqc', 'item'=>'M-001', 'batch'=>'B20260701', 'date'=>'2026-07-02', 'sample'=>50, 'insp'=>50, 'qual'=>49, 'rej'=>1, 'result'=>'pass', 'status'=>QualityInspectionStatus::Completed->value, 'created_by'=>$qualityId],
             // 2. IQC 来料检验 - fail
-            ['no'=>"QI-{$year}-002002", 'type'=>'iqc', 'item'=>'M-004', 'batch'=>'B20260702', 'date'=>'2026-07-03', 'sample'=>30, 'insp'=>30, 'qual'=>22, 'rej'=>8, 'result'=>'fail', 'status'=>'completed', 'created_by'=>$qualityId],
+            ['no'=>"QI-{$year}-002002", 'type'=>'iqc', 'item'=>'M-004', 'batch'=>'B20260702', 'date'=>'2026-07-03', 'sample'=>30, 'insp'=>30, 'qual'=>22, 'rej'=>8, 'result'=>'fail', 'status'=>QualityInspectionStatus::Completed->value, 'created_by'=>$qualityId],
             // 3. IPQC 过程检验 - pass
-            ['no'=>"QI-{$year}-002003", 'type'=>'ipqc', 'item'=>'S-001', 'batch'=>'B20260705', 'date'=>'2026-07-05', 'sample'=>20, 'insp'=>20, 'qual'=>19, 'rej'=>1, 'result'=>'pass', 'status'=>'completed', 'created_by'=>$qualityId],
+            ['no'=>"QI-{$year}-002003", 'type'=>'ipqc', 'item'=>'S-001', 'batch'=>'B20260705', 'date'=>'2026-07-05', 'sample'=>20, 'insp'=>20, 'qual'=>19, 'rej'=>1, 'result'=>'pass', 'status'=>QualityInspectionStatus::Completed->value, 'created_by'=>$qualityId],
             // 4. FQC 成品检验 - conditional
-            ['no'=>"QI-{$year}-002004", 'type'=>'fqc', 'item'=>'F-001', 'batch'=>'B20260706', 'date'=>'2026-07-06', 'sample'=>10, 'insp'=>10, 'qual'=>8, 'rej'=>2, 'result'=>'conditional', 'status'=>'completed', 'created_by'=>$qualityId],
+            ['no'=>"QI-{$year}-002004", 'type'=>'fqc', 'item'=>'F-001', 'batch'=>'B20260706', 'date'=>'2026-07-06', 'sample'=>10, 'insp'=>10, 'qual'=>8, 'rej'=>2, 'result'=>'conditional', 'status'=>QualityInspectionStatus::Completed->value, 'created_by'=>$qualityId],
             // 5. OQC 出货检验 - pass
-            ['no'=>"QI-{$year}-002005", 'type'=>'oqc', 'item'=>'F-002', 'batch'=>'B20260710', 'date'=>'2026-07-10', 'sample'=>10, 'insp'=>10, 'qual'=>10, 'rej'=>0,  'result'=>'pass', 'status'=>'completed', 'created_by'=>$qualityId],
+            ['no'=>"QI-{$year}-002005", 'type'=>'oqc', 'item'=>'F-002', 'batch'=>'B20260710', 'date'=>'2026-07-10', 'sample'=>10, 'insp'=>10, 'qual'=>10, 'rej'=>0,  'result'=>'pass', 'status'=>QualityInspectionStatus::Completed->value, 'created_by'=>$qualityId],
             // 6. IQC - waived（免检）
-            ['no'=>"QI-{$year}-002006", 'type'=>'iqc', 'item'=>'P-001', 'batch'=>'B20260708', 'date'=>'2026-07-08', 'sample'=>0,  'insp'=>0,  'qual'=>0, 'rej'=>0,  'result'=>'waived', 'status'=>'completed', 'created_by'=>$qualityId],
+            ['no'=>"QI-{$year}-002006", 'type'=>'iqc', 'item'=>'P-001', 'batch'=>'B20260708', 'date'=>'2026-07-08', 'sample'=>0,  'insp'=>0,  'qual'=>0, 'rej'=>0,  'result'=>'waived', 'status'=>QualityInspectionStatus::Completed->value, 'created_by'=>$qualityId],
         ];
 
         foreach ($qiData as $qi) {

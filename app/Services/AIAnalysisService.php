@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\QualityInspectionStatus;
 use App\Models\Sales\SalesOrder;
 use App\Models\Purchasing\PurchaseOrder;
 use App\Models\Production\ProductionOrder;
@@ -51,7 +52,7 @@ class AIAnalysisService
             ->limit(10)
             ->get();
 
-        $pendingQuality = QualityInspection::where('status', 'pending')->count();
+        $pendingQuality = QualityInspection::where('status', QualityInspectionStatus::Pending)->count();
 
         $prompt = "你是电子厂ERP系统的经营分析助手。请根据以下今日数据，生成一份简洁的中文经营日报（300字以内），包含：1)今日销售/采购概况 2)生产在制情况 3)低库存预警 4)待处理质检 5)明日建议。
 

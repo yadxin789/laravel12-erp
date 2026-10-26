@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\QualityInspectionStatus;
 use App\Models\MasterData\Item;
 use App\Models\User;
 use App\Services\QualityService;
@@ -41,7 +42,7 @@ class QualityServiceTest extends TestCase
 
         $this->assertNotNull($inspection);
         $this->assertEquals('iqc', $inspection->inspection_type->value);
-        $this->assertEquals('pending', $inspection->status);
+        $this->assertEquals(QualityInspectionStatus::Pending, $inspection->status);
     }
 
     public function test_create_ipqc_inspection()
@@ -105,7 +106,7 @@ class QualityServiceTest extends TestCase
 
         $updatedInspection = $this->service->completeInspection($inspection, $results);
 
-        $this->assertEquals('completed', $updatedInspection->status);
+        $this->assertEquals(QualityInspectionStatus::Completed, $updatedInspection->status);
         $this->assertEquals(95, $updatedInspection->qualified_size);
         $this->assertEquals(5, $updatedInspection->rejected_size);
     }
@@ -129,7 +130,7 @@ class QualityServiceTest extends TestCase
 
         $updatedInspection = $this->service->completeInspection($inspection, $results);
 
-        $this->assertEquals('completed', $updatedInspection->status);
+        $this->assertEquals(QualityInspectionStatus::Completed, $updatedInspection->status);
     }
 
     public function test_generate_inspection_report()

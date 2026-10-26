@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\App\Quality;
 
+use App\Enums\QualityInspectionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Quality\QualityInspection;
 use App\Models\MasterData\Item;
@@ -67,7 +68,7 @@ class QualityController extends Controller
             'rejected_size' => $validated['rejected_size'],
             'warehouse_id' => $validated['warehouse_id'] ?? null,
             'result' => $validated['result'],
-            'status' => 'completed',
+            'status' => QualityInspectionStatus::Completed,
         ]);
 
         $this->auditLog('create', 'QualityInspection', $inspection);

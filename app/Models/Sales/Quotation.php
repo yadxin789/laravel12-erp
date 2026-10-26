@@ -33,4 +33,17 @@ class Quotation extends Model
     {
         return $this->hasMany(QuotationLine::class);
     }
+
+    public function canSubmit()
+    {
+        return $this->status === QuotationStatus::Draft;
+    }
+
+    /**
+     * 已审核（submitted）的报价单才能生成销售订单；converted 后不可重复转换，避免产生重复订单。
+     */
+    public function canConvert()
+    {
+        return $this->status === QuotationStatus::Submitted;
+    }
 }

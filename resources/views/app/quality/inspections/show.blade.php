@@ -58,7 +58,7 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="text-muted small">状态</div>
-                    <div class="fw-semibold">{{ $inspection->status ?? '-' }}</div>
+                    <div class="fw-semibold">{{ $inspection->status?->label() ?? '-' }}</div>
                 </div>
                 <div class="col-12">
                     <div class="text-muted small">备注</div>

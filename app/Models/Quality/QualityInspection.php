@@ -3,6 +3,7 @@
 namespace App\Models\Quality;
 
 use App\Enums\InspectionType;
+use App\Enums\QualityInspectionStatus;
 use App\Enums\QualityResult;
 use App\Support\Traits\HasAttachments;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,6 +28,7 @@ class QualityInspection extends Model
         'rejected_size' => 'decimal:4',
         'inspection_type' => InspectionType::class,
         'result' => QualityResult::class,
+        'status' => QualityInspectionStatus::class,
     ];
 
     public function item()

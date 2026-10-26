@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\InventoryQualityStatus;
 use App\Enums\InspectionType;
+use App\Enums\QualityInspectionStatus;
 use App\Enums\QualityResult;
 use App\Models\Inventory\InventoryBalance;
 use App\Models\Quality\QualityInspection;
@@ -31,7 +32,7 @@ class QualityService
                 'qualified_size' => 0,
                 'rejected_size' => 0,
                 'result' => QualityResult::Pass,
-                'status' => 'pending',
+                'status' => QualityInspectionStatus::Pending,
                 'remark' => $data['remark'] ?? null,
                 'created_by' => auth()->id(),
             ]);
@@ -62,7 +63,7 @@ class QualityService
                 $this->updateInventoryStatus($inspection, InventoryQualityStatus::Rejected);
             }
 
-            $inspection->status = 'completed';
+            $inspection->status = QualityInspectionStatus::Completed;
             $inspection->approved_by = auth()->id();
             $inspection->approved_at = now();
             $inspection->save();
@@ -116,7 +117,8 @@ class QualityService
                 ? round(($inspection->qualified_size / $inspection->inspected_size) * 100, 1) 
                 : 0,
             'result' => $inspection->result->value,
-            'status' => $inspection->status,
+            'status' => $inspection->status?->value,
+            'status_label' => $inspection->status?->label(),
             'created_by' => $inspection->created_by,
             'approved_by' => $inspection->approved_by,
             'approved_at' => $inspection->approved_at,

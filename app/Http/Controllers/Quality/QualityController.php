@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Quality;
 
+use App\Enums\QualityInspectionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Quality\QualityInspection;
 use App\Services\QualityService;
@@ -30,7 +31,12 @@ class QualityController extends Controller
             $query->where('inspection_type', $request->inspection_type);
         }
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            // 枚举外的值直接忽略，避免用脏参数查出空结果
+            $status = QualityInspectionStatus::tryFrom($request->status);
+
+            if ($status) {
+                $query->where('status', $status);
+            }
         }
         if ($request->filled('batch_number')) {
             $query->where('batch_number', 'like', "%{$request->batch_number}%");

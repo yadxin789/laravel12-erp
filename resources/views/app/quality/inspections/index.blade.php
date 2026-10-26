@@ -60,7 +60,7 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-light text-secondary border">{{ $inspection->status ?? '-' }}</span>
+                                    <span class="badge bg-light text-secondary border">{{ $inspection->status?->label() ?? '-' }}</span>
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ route('app.quality.inspections.show', $inspection) }}" class="btn btn-sm btn-outline-primary">
